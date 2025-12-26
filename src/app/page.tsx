@@ -73,7 +73,7 @@ function AssetGrid() {
                   className="object-cover"
                   data-ai-hint={asset.imageHint}
                 />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                <div className="absolute inset-0 bg-transparent group-hover:bg-black/40 transition-colors flex items-center justify-center">
                    <p className="text-white font-semibold text-lg opacity-0 group-hover:opacity-100 transition-opacity select-none">
                     {asset.description}
                   </p>

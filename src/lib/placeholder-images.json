@@ -3,103 +3,103 @@
     {
       "id": "Kanade_Hisaishi",
       "description": "久石奏",
-      "imageUrl": "/AR_photo_frame_1080x1920px_Kanade_Hisaishi_250905.png",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Kanade_Hisaishi_250905.webp",
       "imageHint": "Kanade Hisaishi"
     },
     {
       "id": "Natsuki_Nakagawa",
       "description": "中川夏紀",
-      "imageUrl": "/AR_photo_frame_1080x1920px_Natsuki_Nakagawa_250905.png",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Natsuki_Nakagawa_250905.webp",
       "imageHint": "Natsuki Nakagawa"
     },
     {
       "id": "Yuko_Yoshikawa",
       "description": "吉川優子",
-      "imageUrl": "/AR_photo_frame_1080x1920px_Yuko_Yoshikawa_250905.png",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Yuko_Yoshikawa_250905.webp",
       "imageHint": "Yuko Yoshikawa"
     },
     {
       "id": "Kumiko_Oumae",
       "description": "黄前久美子",
-      "imageUrl": "/AR_photo_frame_1080x1920px_Kumiko_Oumae_250905.png",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Kumiko_Oumae_250905.webp",
       "imageHint": "Kumiko Oumae"
     },
     {
       "id": "Reina_Kousaka",
       "description": "高坂麗奈",
-      "imageUrl": "/AR_photo_frame_1080x1920px_Reina_Kousaka_250905.png",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Reina_Kousaka_250905.webp",
       "imageHint": "Reina Kousaka"
     },
     {
       "id": "Mayu_Kuroe",
       "description": "黒江真由",
-      "imageUrl": "/AR_photo_frame_1080x1920px_Mayu_Kuroe_250905.png",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Mayu_Kuroe_250905.webp",
       "imageHint": "Mayu Kuroe"
     },
     {
       "id": "Sapphire_Kawashima",
       "description": "川島緑輝",
-      "imageUrl": "/AR_photo_frame_1080x1920px_Sapphire_Kawashima_250905.png",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Sapphire_Kawashima_250905.webp",
       "imageHint": "Sapphire Kawashima"
     },
     {
       "id": "Hazuki_Katou",
       "description": "加藤葉月",
-      "imageUrl": "/AR_photo_frame_1080x1920px_Hazuki_Katou_250905.png",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Hazuki_Katou_250905.webp",
       "imageHint": "Hazuki Katou"
     },
     {
       "id": "Asuka_Tanaka",
       "description": "田中あすか",
-      "imageUrl": "/AR_photo_frame_1080x1920px_Asuka_Tanaka_250905.png",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Asuka_Tanaka_250905.webp",
       "imageHint": "Asuka Tanaka"
     },
     {
       "id": "Hazuki_Sapphire",
       "description": "葉月 & 緑輝",
-      "imageUrl": "/AR_photo_frame_1080x1920px_Hazuki_&_Sapphire_250905.png",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Hazuki_&_Sapphire_250905.webp",
       "imageHint": "Hazuki Sapphire"
     },
     {
       "id": "Reina_Kumiko",
       "description": "麗奈 & 久美子",
-      "imageUrl": "/AR_photo_frame_1080x1920px_Reina_&_Kumiko_250905.png",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Reina_&_Kumiko_250905.webp",
       "imageHint": "Reina Kumiko"
     },
     {
       "id": "complete",
       "description": "全員集合",
-      "imageUrl": "/AR_photo_frame_1080x1920px__complete.png",
+      "imageUrl": "/AR_photo_frame_1080x1920px__complete.webp",
       "imageHint": "All members"
     },
     {
       "id": "Hazuki_SD",
       "description": "葉月 SD",
-      "imageUrl": "/AR_photo_frame_Hazuki_SD_1080x1920px_250918.png",
+      "imageUrl": "/AR_photo_frame_Hazuki_SD_1080x1920px_250918.webp",
       "imageHint": "Hazuki SD"
     },
     {
       "id": "Kumiko_SD",
       "description": "久美子 SD",
-      "imageUrl": "/AR_photo_frame_Kumiko_SD_1080x1920px_250918.png",
+      "imageUrl": "/AR_photo_frame_Kumiko_SD_1080x1920px_250918.webp",
       "imageHint": "Kumiko SD"
     },
     {
       "id": "Reina_SD",
       "description": "麗奈 SD",
-      "imageUrl": "/AR_photo_frame_Reina_SD_1080x1920px_250918.png",
+      "imageUrl": "/AR_photo_frame_Reina_SD_1080x1920px_250918.webp",
       "imageHint": "Reina SD"
     },
     {
       "id": "Mayu_SD",
       "description": "真由 SD",
-      "imageUrl": "/AR_photo_frame_Mayu_SD_1080x1920px_250918.png",
+      "imageUrl": "/AR_photo_frame_Mayu_SD_1080x1920px_250918.webp",
       "imageHint": "Mayu SD"
     },
     {
       "id": "Sapphire_SD",
       "description": "緑輝 SD",
-      "imageUrl": "/AR_photo_frame_Sapphire_SD_1080x1920px_250918.png",
+      "imageUrl": "/AR_photo_frame_Sapphire_SD_1080x1920px_250918.webp",
       "imageHint": "Sapphire SD"
     }
   ]

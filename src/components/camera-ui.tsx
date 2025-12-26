@@ -11,12 +11,17 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Video, SwitchCamera, Download, Settings, Loader, AlertTriangle, CircleDot, X } from 'lucide-react';
+import { Camera, Video, SwitchCamera, Download, Settings, Loader, AlertTriangle, CircleDot, X, RefreshCw, Save } from 'lucide-react';
 import { AssetSelector } from './asset-selector';
 import { LanguageSwitcher } from './language-switcher';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { Label } from './ui/label';
+import { Separator } from './ui/separator';
 
 type Mode = 'photo' | 'video';
 type FacingMode = 'user' | 'environment';
+type PreviewType = 'photo' | 'video';
+type PhotoFormat = 'png' | 'jpeg';
 
 export function CameraUI() {
   const { t } = useI18n();
@@ -30,7 +35,6 @@ export function CameraUI() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const animationFrameId = useRef<number>(0);
-  const recordingTrackRef = useRef<any>(null);
   const lastRecordFrameTimeRef = useRef<number>(0);
   const currentStreamRef = useRef<MediaStream | null>(null);
   const zoomStartDistRef = useRef<number | null>(null);
@@ -38,6 +42,7 @@ export function CameraUI() {
   const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastZoomTimeRef = useRef<number>(0);
   const zoomIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [mounted, setMounted] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -48,13 +53,24 @@ export function CameraUI() {
   const [assets, setAssets] = useState<ImagePlaceholder[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<ImagePlaceholder | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const [overlayAspectRatio, setOverlayAspectRatio] = useState<number | null>(null);
   const [digitalZoom, setDigitalZoom] = useState(1);
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number; visible: boolean } | null>(null);
   const [showZoomIndicator, setShowZoomIndicator] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<PreviewType | null>(null);
+  const [previewFileType, setPreviewFileType] = useState<string>('');
+  const [photoFormat, setPhotoFormat] = useState<PhotoFormat>('png');
+
 
   useEffect(() => {
     setMounted(true);
+
+    const savedFormat = localStorage.getItem('photoFormat') as PhotoFormat | null;
+    if (savedFormat && ['png', 'jpeg'].includes(savedFormat)) {
+      setPhotoFormat(savedFormat);
+    }
 
     const preventDefault = (e: Event) => e.preventDefault();
     document.addEventListener('gesturestart', preventDefault);
@@ -67,8 +83,14 @@ export function CameraUI() {
       document.removeEventListener('gestureend', preventDefault);
       if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
       if (zoomIndicatorTimeoutRef.current) clearTimeout(zoomIndicatorTimeoutRef.current);
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     };
   }, []);
+
+  const handleSetPhotoFormat = (value: PhotoFormat) => {
+    setPhotoFormat(value);
+    localStorage.setItem('photoFormat', value);
+  };
 
   useEffect(() => {
     const allAssets = PlaceHolderImages;
@@ -98,7 +120,7 @@ export function CameraUI() {
   }, [selectedAsset]);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || previewUrl) return;
 
     const startStream = async () => {
       setIsLoading(true);
@@ -151,7 +173,7 @@ export function CameraUI() {
       }
       setIsVideoReady(false);
     };
-  }, [facingMode, mounted, t, toast]);
+  }, [facingMode, mounted, t, toast, previewUrl]);
 
   const handleVideoLoaded = () => {
     if (videoRef.current) {
@@ -167,6 +189,7 @@ export function CameraUI() {
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (previewUrl) return;
     if (e.touches.length === 2) {
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
@@ -178,6 +201,7 @@ export function CameraUI() {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (previewUrl) return;
     if (e.cancelable) {
       e.preventDefault();
     }
@@ -201,6 +225,7 @@ export function CameraUI() {
   };
 
   const handleTouchEnd = () => {
+    if (previewUrl) return;
     zoomStartDistRef.current = null;
     if (showZoomIndicator) {
       if (zoomIndicatorTimeoutRef.current) {
@@ -213,6 +238,8 @@ export function CameraUI() {
   };
 
   const handleTapToFocus = async (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    if (previewUrl) return;
+
     let clientX, clientY;
     if ('touches' in e) {
       if (e.touches.length !== 1) return;
@@ -292,49 +319,60 @@ export function CameraUI() {
     const zoomedSx = baseSx + (baseSw - zoomedSw) / 2;
     const zoomedSy = baseSy + (baseSh - zoomedSh) / 2;
 
-    canvas.width = baseSw;
-    canvas.height = baseSh;
+    const targetW = Math.floor(baseSw);
+    const targetH = Math.floor(baseSh);
+
+    if (canvas.width !== targetW || canvas.height !== targetH) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+    }
 
     context.save();
     if (facingMode === 'user') {
       context.scale(-1, 1);
       context.translate(-canvas.width, 0);
     }
+    
+    // Fill background for formats that don't support transparency
+    if (photoFormat === 'jpeg') {
+      context.fillStyle = 'black';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
 
     context.drawImage(video, zoomedSx, zoomedSy, zoomedSw, zoomedSh, 0, 0, canvas.width, canvas.height);
-    context.drawImage(overlay, 0, 0, canvas.width, canvas.height);
-
     context.restore();
-
-  }, [facingMode, digitalZoom]);
+    context.drawImage(overlay, 0, 0, canvas.width, canvas.height);
+  }, [facingMode, digitalZoom, photoFormat]);
 
   const handleCapturePhoto = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !selectedAsset) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext('2d', { alpha: photoFormat === 'png' });
     if (!context) return;
-
-    const overlay = overlayRef.current;
-    if (!overlay) return;
 
     drawFrame(context, video);
 
-    const link = document.createElement('a');
-    link.download = `EuphoCam-${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    toast({ title: t('photo.saved') });
-  }, [drawFrame, t, toast, selectedAsset]);
+    const mimeType = `image/${photoFormat}`;
+    setPreviewUrl(canvas.toDataURL(mimeType));
+    setPreviewType('photo');
+    setPreviewFileType(photoFormat === 'png' ? 'png' : 'jpg');
+  }, [drawFrame, selectedAsset, photoFormat]);
 
   const recordLoop = useCallback((timestamp: number) => {
-    if (!videoRef.current || !canvasRef.current || !isRecording) return;
-  
+    if (!isRecording) return;
+
     if (timestamp - lastRecordFrameTimeRef.current >= 32) {
-      const context = canvasRef.current.getContext('2d');
-      if (context) {
-        drawFrame(context, videoRef.current);
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (video && canvas) {
+        const context = canvas.getContext('2d');
+        if (context) {
+          drawFrame(context, video);
+          context.getImageData(0, 0, 1, 1);
+        }
       }
       lastRecordFrameTimeRef.current = timestamp;
     }
@@ -344,70 +382,102 @@ export function CameraUI() {
 
   const handleStartRecording = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || isRecording || !selectedAsset) return;
+
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
-    lastRecordFrameTimeRef.current = performance.now();
-
-    setIsRecording(true);
-    recordedChunksRef.current = [];
-
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext('2d', { alpha: false });
     if (!context) return;
 
     drawFrame(context, video);
 
     setIsRecording(true);
+    setRecordingTime(0);
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+    }, 1000);
+
     recordedChunksRef.current = [];
-
-    const canvasStream = canvas.captureStream(30);
-    recordingTrackRef.current = canvasStream.getVideoTracks()[0];
-
-    if (currentStreamRef.current && currentStreamRef.current.getAudioTracks().length > 0) {
-      currentStreamRef.current.getAudioTracks().forEach(audioTrack => canvasStream.addTrack(audioTrack.clone()));
-    }
-
-    const options: MediaRecorderOptions = {
-      mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-        ? 'video/webm;codecs=vp9'
-        : 'video/webm;codecs=vp8',
-      videoBitsPerSecond: 10000000
-    };
-
-    mediaRecorderRef.current = new MediaRecorder(canvasStream, options);
-
-    mediaRecorderRef.current.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        recordedChunksRef.current.push(event.data);
-      }
-    };
-    mediaRecorderRef.current.onstop = () => {
-      const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `EuphoCam-video-${Date.now()}.webm`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast({ title: t('video.saved') });
-    };
-
-    mediaRecorderRef.current.start(100);
     lastRecordFrameTimeRef.current = performance.now();
     animationFrameId.current = requestAnimationFrame(recordLoop);
-  }, [isRecording, recordLoop, t, toast, selectedAsset, drawFrame]);
+
+    setTimeout(() => {
+      try {
+        const canvasStream = canvas.captureStream(30);
+
+        if (currentStreamRef.current) {
+          currentStreamRef.current.getAudioTracks().forEach(track => {
+            canvasStream.addTrack(track.clone());
+          });
+        }
+
+        const getSupportedMimeType = () => {
+          const types = [
+            'video/mp4;codecs=avc1',
+            'video/webm;codecs=vp8',
+            'video/webm',
+            'video/mp4'
+          ];
+          return types.find(type => MediaRecorder.isTypeSupported(type)) || '';
+        };
+
+        const mimeType = getSupportedMimeType();
+        if (!mimeType) {
+          toast({ variant: 'destructive', title: t('error.title'), description: "Device not supported." });
+          return;
+        }
+
+        const options = {
+          mimeType: 'video/webm;codecs=vp8',
+          videoBitsPerSecond: 4000000
+        };
+
+        const recorder = new MediaRecorder(canvasStream, options);
+        mediaRecorderRef.current = recorder;
+
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+        };
+
+        recorder.onstop = () => {
+          if (recordedChunksRef.current.length === 0) {
+            toast({ variant: 'destructive', title: t('error.title'), description: "Recording failed: No data." });
+          } else {
+            const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+            const blob = new Blob(recordedChunksRef.current, { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            setPreviewUrl(url);
+            setPreviewType('video');
+            setPreviewFileType(extension);
+          }
+        };
+
+        recorder.start(500);
+
+      } catch (err) {
+        console.error("Recording error:", err);
+        setIsRecording(false);
+      }
+    }, 250);
+
+  }, [isRecording, recordLoop, drawFrame, selectedAsset, toast, t]);
 
   const handleStopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-      }
+    } else {
+      console.warn("Recorder was not ready yet.");
     }
-  }, [isRecording]);
+    
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    recordingTimerRef.current = null;
+    setRecordingTime(0);
+    setIsRecording(false);
+    if (animationFrameId.current) {
+      cancelAnimationFrame(animationFrameId.current);
+    }
+  }, []);
 
   const handleShutterClick = () => {
     if (!selectedAsset) {
@@ -439,88 +509,165 @@ export function CameraUI() {
   const handleGoHome = () => {
     if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
     if (zoomIndicatorTimeoutRef.current) clearTimeout(zoomIndicatorTimeoutRef.current);
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     router.push('/');
   };
+
+  const handleRetake = () => {
+    if (previewUrl && previewType === 'video') {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setPreviewType(null);
+    setPreviewFileType('');
+  };
+  
+  const handleSave = () => {
+    if (!previewUrl) return;
+  
+    const link = document.createElement('a');
+    link.href = previewUrl;
+    link.download = `EuphoCam-${Date.now()}.${previewFileType}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  
+    toast({ title: previewType === 'photo' ? t('photo.saved') : t('video.saved') });
+    handleRetake();
+  };
+
+  const formatRecordingTime = (timeInSeconds: number) => {
+    const minutes = Math.floor(timeInSeconds / 60).toString().padStart(2, '0');
+    const seconds = (timeInSeconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
+  };
+
 
   if (!mounted) {
     return <div className="absolute z-20 flex h-full w-full items-center justify-center bg-black"><Loader className="h-12 w-12 animate-spin text-primary-foreground" /></div>;
   }
 
   return (
-    <div className="relative flex h-full w-full items-center justify-center">
-      {(isLoading || hasCameraPermission === null || !isVideoReady) && <Loader className="absolute z-20 h-12 w-12 animate-spin text-primary-foreground" />}
-      {hasCameraPermission === false && (
-        <div className="absolute z-20 flex flex-col items-center gap-4 text-center text-primary-foreground p-4">
-          <AlertTriangle className="h-12 w-12 text-destructive" />
-          <p className="font-medium">{t('error.camera.permission')}</p>
-        </div>
-      )}
+    <div className="relative flex h-full w-full items-center justify-center bg-black">
+      <div className={`absolute top-0 left-0 right-0 bottom-0 z-0 flex items-center justify-center transition-opacity duration-300 ${previewUrl ? 'opacity-0' : 'opacity-100'}`}>
+        {(isLoading || hasCameraPermission === null || !isVideoReady) && <Loader className="absolute z-20 h-12 w-12 animate-spin text-primary-foreground" />}
+        {hasCameraPermission === false && (
+          <div className="absolute z-20 flex flex-col items-center gap-4 text-center text-primary-foreground p-4">
+            <AlertTriangle className="h-12 w-12 text-destructive" />
+            <p className="font-medium">{t('error.camera.permission')}</p>
+          </div>
+        )}
 
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onClick={handleTapToFocus}
-        className={`relative overflow-hidden flex items-center justify-center touch-none ${selectedAsset && overlayAspectRatio && isVideoReady ? 'max-h-full max-w-full' : 'h-full w-full'
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onClick={handleTapToFocus}
+          className={`relative overflow-hidden flex items-center justify-center touch-none ${selectedAsset && overlayAspectRatio && isVideoReady ? 'max-h-full max-w-full' : 'h-full w-full'
           }`}
-        style={{ aspectRatio: selectedAsset && overlayAspectRatio && isVideoReady ? overlayAspectRatio : 'auto' }}
-      >
-        <video
-          ref={videoRef}
-          style={{
-            transform: `${facingMode === 'user' ? 'scaleX(-1)' : ''} scale(${digitalZoom})`
-          }}
-          className={`h-full w-full ${selectedAsset && overlayAspectRatio && isVideoReady ? 'object-cover' : 'object-contain'
-            } ${(hasCameraPermission && !isLoading) ? '' : 'hidden'}`}
-          onLoadedData={handleVideoLoaded}
-          playsInline
-        ></video>
+          style={{ aspectRatio: selectedAsset && overlayAspectRatio && isVideoReady ? overlayAspectRatio : 'auto' }}
+        >
+          <video
+            ref={videoRef}
+            style={{
+              transform: `${facingMode === 'user' ? 'scaleX(-1)' : ''} scale(${digitalZoom})`
+            }}
+            className={`h-full w-full ${selectedAsset && overlayAspectRatio && isVideoReady ? 'object-cover' : 'object-contain'
+              } ${(hasCameraPermission && !isLoading) ? '' : 'hidden'}`}
+            onLoadedData={handleVideoLoaded}
+            playsInline
+            muted
+          ></video>
 
-        {selectedAsset && (
-          <Image
-            ref={overlayRef}
-            crossOrigin="anonymous"
-            src={selectedAsset.imageUrl}
-            alt={selectedAsset.description}
-            fill
-            onLoadingComplete={({ naturalWidth, naturalHeight }) => setOverlayAspectRatio(naturalWidth / naturalHeight)}
-            className={`pointer-events-none object-fill transition-opacity duration-300 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
-            data-ai-hint={selectedAsset.imageHint}
-            priority
-          />
+          {selectedAsset && (
+            <Image
+              ref={overlayRef}
+              crossOrigin="anonymous"
+              src={selectedAsset.imageUrl}
+              alt={selectedAsset.description}
+              fill
+              onLoadingComplete={({ naturalWidth, naturalHeight }) => setOverlayAspectRatio(naturalWidth / naturalHeight)}
+              className={`pointer-events-none object-cover transition-opacity duration-300 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
+              data-ai-hint={selectedAsset.imageHint}
+              priority
+            />
+          )}
+        </div>
+
+        {showZoomIndicator && (
+          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/50 px-4 py-2 text-white transition-opacity duration-300">
+            <p className="text-lg font-bold">{digitalZoom.toFixed(1)}x</p>
+          </div>
+        )}
+
+        {focusPoint && (
+          <div
+            className={`pointer-events-none absolute h-16 w-16 border-2 border-yellow-400 transition-opacity duration-300 ease-out ${focusPoint.visible ? 'opacity-100 scale-100' : 'opacity-0 scale-150'
+              }`}
+            style={{
+              left: focusPoint.x,
+              top: focusPoint.y,
+              transform: 'translate(-50%, -50%)',
+              boxShadow: '0 0 4px rgba(0,0,0,0.5)'
+            }}
+          >
+            <div className="absolute top-1/2 left-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-400"></div>
+          </div>
         )}
       </div>
 
-      {showZoomIndicator && (
-        <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/50 px-4 py-2 text-white transition-opacity duration-300">
-          <p className="text-lg font-bold">{digitalZoom.toFixed(1)}x</p>
-        </div>
-      )}
 
-      {focusPoint && (
-        <div
-          className={`pointer-events-none absolute h-16 w-16 border-2 border-yellow-400 transition-opacity duration-300 ease-out ${focusPoint.visible ? 'opacity-100 scale-100' : 'opacity-0 scale-150'
-            }`}
-          style={{
-            left: focusPoint.x,
-            top: focusPoint.y,
-            transform: 'translate(-50%, -50%)',
-            boxShadow: '0 0 4px rgba(0,0,0,0.5)'
-          }}
-        >
-          <div className="absolute top-1/2 left-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-400"></div>
-        </div>
-      )}
+      <canvas ref={canvasRef}
+        className="pointer-events-none absolute opacity-0"
+        style={{
+          left: '-10000px',
+          top: '0',
+          visibility: 'hidden'
+        }}
+      ></canvas>
 
-      <canvas ref={canvasRef} className="hidden"></canvas>
+      <div className={`absolute top-0 left-0 right-0 bottom-0 z-40 transition-opacity duration-300 ${!previewUrl ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        {previewUrl &&
+          <div className="relative flex h-full w-full items-center justify-center bg-black">
+            <div
+              className="relative w-full h-full flex items-center justify-center"
+              style={{ aspectRatio: selectedAsset && overlayAspectRatio ? overlayAspectRatio : 'auto' }}
+            >
+              {previewType === 'photo' && (
+                <Image src={previewUrl} alt="Preview" layout="fill" objectFit="contain" />
+              )}
+              {previewType === 'video' && (
+                <video src={previewUrl} className="w-full h-full" autoPlay controls loop />
+              )}
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 z-50 flex justify-center gap-8 p-6 bg-gradient-to-t from-black/70 to-transparent">
+              <Button onClick={handleRetake} variant="ghost" size="lg" className="text-white flex-col h-auto gap-1">
+                <RefreshCw className="h-8 w-8" />
+                <span>{t('retake')}</span>
+              </Button>
+              <Button onClick={handleSave} variant="ghost" size="lg" className="text-white flex-col h-auto gap-1">
+                <Save className="h-8 w-8" />
+                <span>{t('save')}</span>
+              </Button>
+            </div>
+          </div>
+        }
+      </div>
 
-      <div className="absolute top-4 left-4 z-30">
+
+      <div className={`absolute top-4 left-4 z-30 flex items-center gap-4 transition-opacity duration-300 ${previewUrl ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <Button onClick={handleGoHome} variant="ghost" size="icon" className="text-primary-foreground bg-black/30 hover:bg-black/50 hover:text-white rounded-full">
           <X />
         </Button>
+        {isRecording && (
+          <div className="flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-sm font-medium text-white">
+            <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></div>
+            <span>{formatRecordingTime(recordingTime)}</span>
+          </div>
+        )}
       </div>
 
-      <div className="absolute top-4 right-4 z-30 flex gap-2">
+      <div className={`absolute top-4 right-4 z-30 flex gap-2 transition-opacity duration-300 ${previewUrl ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <LanguageSwitcher className="text-primary-foreground bg-black/30 hover:bg-black/50 hover:text-white rounded-full" />
         <Sheet>
           <SheetTrigger asChild>
@@ -533,7 +680,7 @@ export function CameraUI() {
               <SheetTitle>{t('settings')}</SheetTitle>
             </SheetHeader>
 
-            <div className="mt-6">
+            <div className="mt-6 flex flex-col gap-4">
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium px-4 text-muted-foreground">
                   {t('overlays')}
@@ -548,17 +695,41 @@ export function CameraUI() {
                   />
                 </div>
               </div>
+
+              <Separator />
+              
+              <div className="flex flex-col gap-3 px-4">
+                <label className="text-sm font-medium text-muted-foreground">
+                  {t('photo.format')}
+                </label>
+                <RadioGroup 
+                  value={photoFormat} 
+                  onValueChange={(value) => handleSetPhotoFormat(value as PhotoFormat)}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="png" id="png" />
+                    <Label htmlFor="png">{t('photo.format.png')}</Label>
+
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="jpeg" id="jpeg" />
+                    <Label htmlFor="jpeg">{t('photo.format.jpg')}</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
             </div>
           </SheetContent>
         </Sheet>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 z-30 flex flex-col items-center gap-4 p-6 bg-gradient-to-t from-black/70 to-transparent">
+      <div className={`absolute bottom-0 left-0 right-0 z-30 flex flex-col items-center gap-4 p-6 bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300 ${previewUrl ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <div className="flex w-full max-w-xs items-center justify-around">
           <Tabs value={mode} onValueChange={(value) => setMode(value as Mode)} className="w-auto">
             <TabsList className="bg-black/50 text-white">
-              <TabsTrigger value="photo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">{t('photo')}</TabsTrigger>
-              <TabsTrigger value="video" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">{t('video')}</TabsTrigger>
+              <TabsTrigger value="photo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" disabled={isRecording}>{t('photo')}</TabsTrigger>
+              <TabsTrigger value="video" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" disabled={isRecording}>{t('video')}</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -593,5 +764,3 @@ export function CameraUI() {
     </div>
   );
 }
-
-    
