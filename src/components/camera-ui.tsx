@@ -32,6 +32,7 @@ export function CameraUI() {
   const currentStreamRef = useRef<MediaStream | null>(null);
   const zoomStartDistRef = useRef<number | null>(null);
   const zoomStartScaleRef = useRef<number>(1);
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [mounted, setMounted] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -43,6 +44,7 @@ export function CameraUI() {
   const [isRecording, setIsRecording] = useState(false);
   const [overlayAspectRatio, setOverlayAspectRatio] = useState<number | null>(null);
   const [digitalZoom, setDigitalZoom] = useState(1);
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number; visible: boolean } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -151,7 +153,6 @@ export function CameraUI() {
     setIsLoading(false);
   }
 
-
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       const dist = Math.hypot(
@@ -176,6 +177,51 @@ export function CameraUI() {
       const scaleFactor = dist / zoomStartDistRef.current;
       const newZoom = Math.min(Math.max(zoomStartScaleRef.current * scaleFactor, 1), 5);
       setDigitalZoom(newZoom);
+    }
+  };
+
+  const handleTapToFocus = async (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    let clientX, clientY;
+    if ('touches' in e) {
+      if (e.touches.length !== 1) return;
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.nativeEvent.clientX;
+      clientY = e.nativeEvent.clientY;
+    }
+
+    const container = e.currentTarget.getBoundingClientRect();
+    const x = clientX - container.left;
+    const y = clientY - container.top;
+
+    if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
+    setFocusPoint({ x, y, visible: true });
+
+    focusTimeoutRef.current = setTimeout(() => {
+      setFocusPoint(prev => prev ? { ...prev, visible: false } : null);
+    }, 500);
+
+    if (!currentStreamRef.current) return;
+    const track = currentStreamRef.current.getVideoTracks()[0];
+    const capabilities = track.getCapabilities() as any;
+
+    if (!capabilities.focusMode && !capabilities.pointsOfInterest) return;
+
+    try {
+      const normalizedX = x / container.width;
+      const normalizedY = y / container.height;
+
+      const constraints = {
+        advanced: [{
+          pointsOfInterest: { x: normalizedX, y: normalizedY },
+          focusMode: 'continuous'
+        }]
+      } as any;
+
+      await track.applyConstraints(constraints);
+    } catch (err) {
+      console.debug("Focus constraint not supported", err);
     }
   };
 
@@ -354,6 +400,7 @@ export function CameraUI() {
       <div
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
+        onClick={handleTapToFocus}
         className={`relative overflow-hidden flex items-center justify-center touch-none ${selectedAsset && overlayAspectRatio ? 'max-h-full max-w-full' : 'h-full w-full'
           }`}
         style={{ aspectRatio: selectedAsset && overlayAspectRatio ? overlayAspectRatio : 'auto' }}
@@ -381,6 +428,21 @@ export function CameraUI() {
           />
         )}
       </div>
+
+      {focusPoint && (
+        <div
+          className={`pointer-events-none absolute h-16 w-16 border-2 border-yellow-400 transition-opacity duration-300 ease-out ${focusPoint.visible ? 'opacity-100 scale-100' : 'opacity-0 scale-150'
+            }`}
+          style={{
+            left: focusPoint.x,
+            top: focusPoint.y,
+            transform: 'translate(-50%, -50%)',
+            boxShadow: '0 0 4px rgba(0,0,0,0.5)'
+          }}
+        >
+          <div className="absolute top-1/2 left-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-400"></div>
+        </div>
+      )}
 
       <canvas ref={canvasRef} className="hidden"></canvas>
 

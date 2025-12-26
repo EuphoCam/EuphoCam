@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useI18n } from '@/hooks/use-i18n';
@@ -15,7 +16,8 @@ export function LanguageSwitcher({ className }: LanguageSwitcherProps) {
 
   const languageMap: Record<Locale, string> = {
     en: 'English',
-    zh: '中文',
+    'zh-CN': '简体中文',
+    'zh-TW': '繁體中文',
     ja: '日本語',
   };
 

@@ -74,7 +74,7 @@ function AssetGrid() {
                   data-ai-hint={asset.imageHint}
                 />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                   <p className="text-white font-semibold text-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                   <p className="text-white font-semibold text-lg opacity-0 group-hover:opacity-100 transition-opacity select-none">
                     {asset.description}
                   </p>
                 </div>
@@ -100,8 +100,16 @@ function AssetGrid() {
           />
       </div>
       <footer className="mt-12 text-center text-xs text-muted-foreground">
-        <p>©武田綾乃・宝島社／『響け！』製作委員会2024</p>
-        <p>画像素材は「京阪電車×響け！ユーフォニアム2025」コラボレーション企画によるものです。</p>
+        <div className="space-y-1">
+            <p>©武田綾乃・宝島社／『響け！』製作委員会2024</p>
+            <p>画像は「京阪電車×響け！ユーフォニアム2025」コラボレーション企画より引用しています。</p>
+        </div>
+        <div className="mt-6 space-y-1">
+            <p>{t('footer.disclaimer.line1')}</p>
+            <p>{t('footer.disclaimer.line2')}</p>
+            <p>{t('footer.disclaimer.line3')}</p>
+            <p>{t('footer.disclaimer.line4')}</p>
+        </div>
       </footer>
     </div>
   );

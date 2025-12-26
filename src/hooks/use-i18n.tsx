@@ -18,15 +18,30 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>('en');
 
   useEffect(() => {
-    const browserLang = navigator.language.split('-')[0] as Locale;
-    if (Object.keys(dictionaries).includes(browserLang)) {
-      setLocale(browserLang as Locale);
+    const browserLang = navigator.language.toLowerCase();
+    let detectedLocale: Locale = 'en';
+
+    if (browserLang.startsWith('zh')) {
+        if (browserLang === 'zh-cn' || browserLang === 'zh-sg') {
+            detectedLocale = 'zh-CN';
+        } else if (browserLang === 'zh-tw' || browserLang === 'zh-hk') {
+            detectedLocale = 'zh-TW';
+        } else {
+            detectedLocale = 'zh-CN';
+        }
+    } else if (browserLang.startsWith('ja')) {
+        detectedLocale = 'ja';
+    }
+
+    if (Object.keys(dictionaries).includes(detectedLocale)) {
+      setLocale(detectedLocale);
     }
   }, []);
 
   const t = useCallback((key: keyof Dictionary | string) => {
     const dictionary = dictionaries[locale] || dictionaries['en'];
-    return (dictionary as any)[key] || dictionaries['en'][key as keyof Dictionary] || key;
+    const translation = (dictionary as any)[key] || dictionaries['en'][key as keyof Dictionary] || key;
+    return translation;
   }, [locale]);
 
   const value = { locale, setLocale, t };
