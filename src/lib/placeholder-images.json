@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "overlay-1",
+      "description": "Simple white frame.",
+      "imageUrl": "https://images.unsplash.com/photo-1634969948017-a9abffad732f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3aGl0ZSUyMGZyYW1lfGVufDB8fHx8MTc2Njc0NzE3NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "white frame"
+    },
+    {
+      "id": "overlay-2",
+      "description": "Polaroid style frame.",
+      "imageUrl": "https://images.unsplash.com/photo-1595981235830-8f54193a692f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwb2xhcm9pZCUyMGZyYW1lfGVufDB8fHx8MTc2Njc0NzE3NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "polaroid frame"
+    },
+    {
+      "id": "overlay-3",
+      "description": "Film strip frame.",
+      "imageUrl": "https://images.unsplash.com/photo-1592912487076-1416bfc37ca1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxmaWxtJTIwc3RyaXB8ZW58MHx8fHwxNzY2NzQ3MTc1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "film strip"
+    },
+    {
+      "id": "overlay-4",
+      "description": "Vintage circle view.",
+      "imageUrl": "https://images.unsplash.com/photo-1565347283028-4d19dd4f44f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx2aW50YWdlJTIwdmlld2ZpbmRlcnxlbnwwfHx8fDE3NjY3NDcxNzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vintage viewfinder"
+    }
+  ]
 }
