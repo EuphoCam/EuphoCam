@@ -330,15 +330,11 @@ export function CameraUI() {
 
   const recordLoop = useCallback((timestamp: number) => {
     if (!videoRef.current || !canvasRef.current || !isRecording) return;
-
+  
     if (timestamp - lastRecordFrameTimeRef.current >= 32) {
       const context = canvasRef.current.getContext('2d');
       if (context) {
         drawFrame(context, videoRef.current);
-
-        if (recordingTrackRef.current && recordingTrackRef.current.requestFrame) {
-          recordingTrackRef.current.requestFrame();
-        }
       }
       lastRecordFrameTimeRef.current = timestamp;
     }
@@ -364,7 +360,7 @@ export function CameraUI() {
     setIsRecording(true);
     recordedChunksRef.current = [];
 
-    const canvasStream = canvas.captureStream(0);
+    const canvasStream = canvas.captureStream(30);
     recordingTrackRef.current = canvasStream.getVideoTracks()[0];
 
     if (currentStreamRef.current && currentStreamRef.current.getAudioTracks().length > 0) {
@@ -398,7 +394,7 @@ export function CameraUI() {
       toast({ title: t('video.saved') });
     };
 
-    mediaRecorderRef.current.start();
+    mediaRecorderRef.current.start(100);
     lastRecordFrameTimeRef.current = performance.now();
     animationFrameId.current = requestAnimationFrame(recordLoop);
   }, [isRecording, recordLoop, t, toast, selectedAsset, drawFrame]);
@@ -480,7 +476,7 @@ export function CameraUI() {
           playsInline
         ></video>
 
-        {selectedAsset && isVideoReady && (
+        {selectedAsset && (
           <Image
             ref={overlayRef}
             crossOrigin="anonymous"
@@ -488,7 +484,7 @@ export function CameraUI() {
             alt={selectedAsset.description}
             fill
             onLoadingComplete={({ naturalWidth, naturalHeight }) => setOverlayAspectRatio(naturalWidth / naturalHeight)}
-            className="pointer-events-none object-fill"
+            className={`pointer-events-none object-fill transition-opacity duration-300 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
             data-ai-hint={selectedAsset.imageHint}
             priority
           />
@@ -597,3 +593,5 @@ export function CameraUI() {
     </div>
   );
 }
+
+    

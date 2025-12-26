@@ -50,7 +50,7 @@ function AssetGrid() {
             <h1 className="text-4xl font-bold">{t('app.title')}</h1>
             <LanguageSwitcher />
         </div>
-        <p className="max-w-3xl mx-auto text-muted-foreground">{t('app.description')}</p>
+        <p className="max-w-3xl mx-auto text-muted-foreground text-balance">{t('app.description')}</p>
       </header>
 
       <div className="text-center mb-6">
