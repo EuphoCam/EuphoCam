@@ -1,7 +1,9 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useI18n } from '@/hooks/use-i18n';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
@@ -10,7 +12,7 @@ import { Slider } from '@/components/ui/slider';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Video, SwitchCamera, Download, Settings, Loader, AlertTriangle, CircleDot } from 'lucide-react';
+import { Camera, Video, SwitchCamera, Download, Settings, Loader, AlertTriangle, CircleDot, X } from 'lucide-react';
 import { AssetSelector } from './asset-selector';
 import { LanguageSwitcher } from './language-switcher';
 
@@ -20,6 +22,8 @@ type FacingMode = 'user' | 'environment';
 export function CameraUI() {
   const { t } = useI18n();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -27,72 +31,138 @@ export function CameraUI() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const animationFrameId = useRef<number>();
+  const currentStreamRef = useRef<MediaStream | null>(null);
 
-  const [isClient, setIsClient] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
   const [mode, setMode] = useState<Mode>('photo');
-  const [facingMode, setFacingMode] = useState<FacingMode>('user');
+  const [facingMode, setFacingMode] = useState<FacingMode>('environment');
   const [assets, setAssets] = useState<ImagePlaceholder[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<ImagePlaceholder | null>(null);
   const [zoom, setZoom] = useState(1);
   const [zoomCapabilities, setZoomCapabilities] = useState<{ min: number; max: number; step: number } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-
+  const [overlayAspectRatio, setOverlayAspectRatio] = useState<number | null>(null);
+  
   useEffect(() => {
-    setIsClient(true);
-    setAssets(PlaceHolderImages);
-    setSelectedAsset(PlaceHolderImages[0] || null);
+    setMounted(true);
   }, []);
 
-  const cleanupStream = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  }, [stream]);
+  useEffect(() => {
+    const allAssets = PlaceHolderImages;
+    setAssets(allAssets);
+    
+    const assetId = searchParams.get('assetId');
+    const uploadedAssetUrl = searchParams.get('uploadedAssetUrl');
+    const uploadedAssetDescription = searchParams.get('uploadedAssetDescription');
 
-  const handleError = useCallback((err: Error) => {
-    let messageKey: any = 'error.camera.generic';
-    if (err.name === 'NotAllowedError') messageKey = 'error.camera.permission';
-    if (err.name === 'NotFoundError') messageKey = 'error.camera.notfound';
-    setError(t(messageKey));
-    setIsLoading(false);
-    toast({ variant: 'destructive', title: t('error.title'), description: t(messageKey) });
-  }, [t, toast]);
+    if (assetId) {
+      const initialAsset = allAssets.find(a => a.id === assetId);
+      setSelectedAsset(initialAsset || null);
+    } else if (uploadedAssetUrl) {
+      const uploadedAsset: ImagePlaceholder = {
+        id: `uploaded-${Date.now()}`,
+        imageUrl: decodeURIComponent(uploadedAssetUrl),
+        description: uploadedAssetDescription ? decodeURIComponent(uploadedAssetDescription) : 'Uploaded asset',
+        imageHint: 'uploaded'
+      };
+      setAssets(prev => [uploadedAsset, ...prev]);
+      setSelectedAsset(uploadedAsset);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
-    if (!isClient) return;
-    cleanupStream();
-    setIsLoading(true);
-    setError(null);
+    setOverlayAspectRatio(null);
+  }, [selectedAsset]);
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: true })
-      .then(mediaStream => {
-        setStream(mediaStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
+  useEffect(() => {
+    if (!mounted) return;
+
+    const startStream = async () => {
+        setIsLoading(true);
+        setHasCameraPermission(null);
+
+        if (currentStreamRef.current) {
+            currentStreamRef.current.getTracks().forEach(track => track.stop());
         }
-        const videoTrack = mediaStream.getVideoTracks()[0];
-        if (videoTrack && 'zoom' in videoTrack.getSettings()) {
-          const caps = videoTrack.getCapabilities();
-          if (caps.zoom) {
-            setZoomCapabilities({ min: caps.zoom.min, max: caps.zoom.max, step: caps.zoom.step });
-          }
-        } else {
-            setZoomCapabilities(null);
+        
+        try {
+            const mediaStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                  facingMode: facingMode,
+                  width: { ideal: 4096 },
+                  height: { ideal: 2160 } 
+                },
+                audio: true
+            });
+            
+            currentStreamRef.current = mediaStream;
+
+            if (videoRef.current) {
+                videoRef.current.srcObject = mediaStream;
+            }
+            setHasCameraPermission(true);
+
+            const videoTrack = mediaStream.getVideoTracks()[0];
+            if (videoTrack && 'zoom' in videoTrack.getSettings()) {
+                try {
+                    const caps = videoTrack.getCapabilities();
+                    if (caps.zoom) {
+                        setZoomCapabilities({ min: caps.zoom.min, max: caps.zoom.max, step: caps.zoom.step });
+                        const currentZoom = videoTrack.getSettings().zoom || caps.zoom.min;
+                        setZoom(currentZoom);
+                    } else {
+                        setZoomCapabilities(null);
+                    }
+                } catch (e) {
+                    console.warn("Could not get zoom capabilities:", e);
+                    setZoomCapabilities(null);
+                }
+            } else {
+                setZoomCapabilities(null);
+            }
+        } catch (err) {
+            setHasCameraPermission(false);
+            let messageKey: any = 'error.camera.generic';
+            if (err instanceof Error) {
+                if (err.name === 'NotAllowedError') messageKey = 'error.camera.permission';
+                if (err.name === 'NotFoundError') messageKey = 'error.camera.notfound';
+            }
+            toast({ variant: 'destructive', title: t('error.title'), description: t(messageKey) });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    startStream();
+
+    return () => {
+        if (currentStreamRef.current) {
+            currentStreamRef.current.getTracks().forEach(track => track.stop());
+            currentStreamRef.current = null;
+        }
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
+        }
+    };
+  }, [facingMode, mounted, t, toast]);
+
+    const handleVideoLoaded = () => {
+        if (videoRef.current) {
+            videoRef.current.play().catch(e => {
+                if (e.name !== 'AbortError') {
+                    console.error("Error playing video:", e)
+                }
+            });
         }
         setIsLoading(false);
-      })
-      .catch(handleError);
+    }
 
-    return () => cleanupStream();
-  }, [isClient, facingMode, cleanupStream, handleError]);
 
   const handleZoomChange = (value: number[]) => {
-    if (!stream || !zoomCapabilities) return;
-    const videoTrack = stream.getVideoTracks()[0];
+    if (!currentStreamRef.current || !zoomCapabilities) return;
+    const videoTrack = currentStreamRef.current.getVideoTracks()[0];
     if (!videoTrack) return;
     setZoom(value[0]);
     videoTrack.applyConstraints({ advanced: [{ zoom: value[0] }] }).catch(() => {
@@ -102,60 +172,90 @@ export function CameraUI() {
   
   const drawFrame = useCallback((context: CanvasRenderingContext2D, video: HTMLVideoElement) => {
     const canvas = context.canvas;
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+
+    const overlayAspectRatio = overlay.naturalWidth / overlay.naturalHeight;
+    const videoAspectRatio = video.videoWidth / video.videoHeight;
+
+    let sWidth, sHeight, sx, sy;
+
+    if (videoAspectRatio > overlayAspectRatio) {
+        sHeight = video.videoHeight;
+        sWidth = sHeight * overlayAspectRatio;
+        sx = (video.videoWidth - sWidth) / 2;
+        sy = 0;
+    } else {
+        sWidth = video.videoWidth;
+        sHeight = sWidth / overlayAspectRatio;
+        sx = 0;
+        sy = (video.videoHeight - sHeight) / 2;
+    }
+
+    canvas.width = sWidth;
+    canvas.height = sHeight;
+
     context.save();
     if (facingMode === 'user') {
-      context.translate(canvas.width, 0);
-      context.scale(-1, 1);
+        context.scale(-1, 1);
+        context.translate(-canvas.width, 0);
     }
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    context.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
     context.restore();
 
-    if (selectedAsset && overlayRef.current && overlayRef.current.complete) {
-        context.drawImage(overlayRef.current, 0, 0, canvas.width, canvas.height);
-    }
-  }, [facingMode, selectedAsset]);
+    context.drawImage(overlay, 0, 0, canvas.width, canvas.height);
+  }, [facingMode]);
 
   const handleCapturePhoto = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current || !selectedAsset) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    
     const context = canvas.getContext('2d');
     if (!context) return;
+    
+    const overlay = overlayRef.current;
+    if(!overlay) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     
     drawFrame(context, video);
 
     const link = document.createElement('a');
-    link.download = `candidcam-${Date.now()}.png`;
+    link.download = `EuphoCam-${Date.now()}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
     toast({ title: t('photo.saved') });
-  }, [drawFrame, t, toast]);
+  }, [drawFrame, t, toast, selectedAsset]);
 
   const recordLoop = useCallback(() => {
-    if (!isRecording || !videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current) return;
+    const currentIsRecording = mediaRecorderRef.current?.state === 'recording';
+    if (!currentIsRecording) return;
+    
     const context = canvasRef.current.getContext('2d');
     if (context) {
         drawFrame(context, videoRef.current);
     }
     animationFrameId.current = requestAnimationFrame(recordLoop);
-  }, [isRecording, drawFrame]);
+  }, [drawFrame]);
 
   const handleStartRecording = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || isRecording) return;
+    if (!videoRef.current || !canvasRef.current || isRecording || !selectedAsset) return;
+    const video = videoRef.current;
     const canvas = canvasRef.current;
-    canvas.width = 1080;
-    canvas.height = 1920;
 
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
     setIsRecording(true);
     recordedChunksRef.current = [];
     const canvasStream = canvas.captureStream(30);
     
-    // Mix audio from camera stream into canvas stream
-    if (stream && stream.getAudioTracks().length > 0) {
-        stream.getAudioTracks().forEach(audioTrack => canvasStream.addTrack(audioTrack));
+    if (currentStreamRef.current && currentStreamRef.current.getAudioTracks().length > 0) {
+        currentStreamRef.current.getAudioTracks().forEach(audioTrack => canvasStream.addTrack(audioTrack.clone()));
     }
     
     mediaRecorderRef.current = new MediaRecorder(canvasStream, { mimeType: 'video/webm' });
@@ -170,7 +270,7 @@ export function CameraUI() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `candidcam-video-${Date.now()}.webm`;
+      a.download = `EuphoCam-video-${Date.now()}.webm`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -180,7 +280,7 @@ export function CameraUI() {
 
     mediaRecorderRef.current.start();
     animationFrameId.current = requestAnimationFrame(recordLoop);
-  }, [isRecording, stream, recordLoop, t, toast]);
+  }, [isRecording, recordLoop, t, toast, selectedAsset]);
 
   const handleStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -193,6 +293,14 @@ export function CameraUI() {
   }, [isRecording]);
 
   const handleShutterClick = () => {
+    if (!selectedAsset) {
+      toast({
+        variant: "destructive",
+        title: t('error.title'),
+        description: t('error.select.frame'),
+      });
+      return;
+    }
     if (mode === 'photo') {
       handleCapturePhoto();
     } else {
@@ -210,42 +318,66 @@ export function CameraUI() {
     setAssets(prev => [newAsset, ...prev]);
     setSelectedAsset(newAsset);
   };
+  
+  const handleGoHome = () => {
+    router.push('/');
+  };
+
+  if (!mounted) {
+    return <div className="absolute z-20 flex h-full w-full items-center justify-center bg-black"><Loader className="h-12 w-12 animate-spin text-primary-foreground" /></div>;
+  }
 
   return (
     <div className="relative flex h-full w-full items-center justify-center">
-      {isLoading && <Loader className="absolute z-20 h-12 w-12 animate-spin text-primary-foreground" />}
-      {error && !isLoading && (
+      {(isLoading || hasCameraPermission === null) && <Loader className="absolute z-20 h-12 w-12 animate-spin text-primary-foreground" />}
+      {hasCameraPermission === false && (
          <div className="absolute z-20 flex flex-col items-center gap-4 text-center text-primary-foreground p-4">
             <AlertTriangle className="h-12 w-12 text-destructive" />
-            <p className="font-medium">{error}</p>
+            <p className="font-medium">{t('error.camera.permission')}</p>
          </div>
       )}
 
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className={`h-full w-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
-        onLoadedData={() => setIsLoading(false)}
-      ></video>
+      <div 
+        className={`relative overflow-hidden flex items-center justify-center ${
+          selectedAsset && overlayAspectRatio ? 'max-h-full max-w-full' : 'h-full w-full'
+        }`}
+        style={{ aspectRatio: selectedAsset && overlayAspectRatio ? overlayAspectRatio : 'auto' }}
+      >
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className={`h-full w-full ${
+            selectedAsset && overlayAspectRatio ? 'object-cover' : 'object-contain'
+          } ${hasCameraPermission ? '' : 'hidden'} ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
+          onLoadedData={handleVideoLoaded}
+        ></video>
 
-      {selectedAsset && (
-        <Image
-          ref={overlayRef}
-          crossOrigin="anonymous"
-          src={selectedAsset.imageUrl}
-          alt={selectedAsset.description}
-          fill
-          className="pointer-events-none object-contain"
-          data-ai-hint={selectedAsset.imageHint}
-        />
-      )}
+        {selectedAsset && (
+          <Image
+            ref={overlayRef}
+            crossOrigin="anonymous"
+            src={selectedAsset.imageUrl}
+            alt={selectedAsset.description}
+            fill
+            onLoadingComplete={({ naturalWidth, naturalHeight }) => setOverlayAspectRatio(naturalWidth / naturalHeight)}
+            className="pointer-events-none object-fill"
+            data-ai-hint={selectedAsset.imageHint}
+          />
+        )}
+      </div>
 
       <canvas ref={canvasRef} className="hidden"></canvas>
+      
+      <div className="absolute top-4 left-4 z-30">
+        <Button onClick={handleGoHome} variant="ghost" size="icon" className="text-primary-foreground bg-black/30 hover:bg-black/50 hover:text-white rounded-full">
+            <X />
+        </Button>
+      </div>
 
       <div className="absolute top-4 right-4 z-30 flex gap-2">
-        <LanguageSwitcher />
+        <LanguageSwitcher className="text-primary-foreground bg-black/30 hover:bg-black/50 hover:text-white rounded-full" />
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="text-primary-foreground bg-black/30 hover:bg-black/50 hover:text-white rounded-full">
@@ -297,8 +429,8 @@ export function CameraUI() {
             <Button
                 aria-label={mode === 'photo' ? t('capture.photo') : (isRecording ? t('stop.recording') : t('start.recording'))}
                 onClick={handleShutterClick}
-                className="h-20 w-20 rounded-full border-4 border-white bg-transparent hover:bg-white/20 transition-all duration-200 flex items-center justify-center"
-                disabled={isLoading || !!error}
+                className="h-20 w-20 rounded-full border-4 border-white bg-transparent hover:bg-white/20 transition-all duration-200 flex items-center justify-center group"
+                disabled={isLoading || !hasCameraPermission}
             >
                 {isRecording ? (
                     <div className="h-8 w-8 rounded-md bg-destructive animate-pulse"></div>
@@ -313,7 +445,7 @@ export function CameraUI() {
                     variant="ghost"
                     size="icon"
                     className="h-12 w-12 rounded-full text-white bg-black/30 hover:bg-black/50"
-                    disabled={isLoading || isRecording}
+                    disabled={isLoading || isRecording || !hasCameraPermission}
                 >
                     <SwitchCamera className="h-6 w-6" />
                 </Button>

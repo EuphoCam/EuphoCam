@@ -1,28 +1,106 @@
 {
   "placeholderImages": [
     {
-      "id": "overlay-1",
-      "description": "Simple white frame.",
-      "imageUrl": "https://images.unsplash.com/photo-1634969948017-a9abffad732f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3aGl0ZSUyMGZyYW1lfGVufDB8fHx8MTc2Njc0NzE3NXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "white frame"
+      "id": "Kanade_Hisaishi",
+      "description": "久石奏",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Kanade_Hisaishi_250905.png",
+      "imageHint": "Kanade Hisaishi"
     },
     {
-      "id": "overlay-2",
-      "description": "Polaroid style frame.",
-      "imageUrl": "https://images.unsplash.com/photo-1595981235830-8f54193a692f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwb2xhcm9pZCUyMGZyYW1lfGVufDB8fHx8MTc2Njc0NzE3NXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "polaroid frame"
+      "id": "Natsuki_Nakagawa",
+      "description": "中川夏紀",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Natsuki_Nakagawa_250905.png",
+      "imageHint": "Natsuki Nakagawa"
     },
     {
-      "id": "overlay-3",
-      "description": "Film strip frame.",
-      "imageUrl": "https://images.unsplash.com/photo-1592912487076-1416bfc37ca1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxmaWxtJTIwc3RyaXB8ZW58MHx8fHwxNzY2NzQ3MTc1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "film strip"
+      "id": "Yuko_Yoshikawa",
+      "description": "吉川優子",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Yuko_Yoshikawa_250905.png",
+      "imageHint": "Yuko Yoshikawa"
     },
     {
-      "id": "overlay-4",
-      "description": "Vintage circle view.",
-      "imageUrl": "https://images.unsplash.com/photo-1565347283028-4d19dd4f44f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx2aW50YWdlJTIwdmlld2ZpbmRlcnxlbnwwfHx8fDE3NjY3NDcxNzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "vintage viewfinder"
+      "id": "Kumiko_Oumae",
+      "description": "黄前久美子",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Kumiko_Oumae_250905.png",
+      "imageHint": "Kumiko Oumae"
+    },
+    {
+      "id": "Reina_Kousaka",
+      "description": "高坂麗奈",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Reina_Kousaka_250905.png",
+      "imageHint": "Reina Kousaka"
+    },
+    {
+      "id": "Mayu_Kuroe",
+      "description": "黒江真由",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Mayu_Kuroe_250905.png",
+      "imageHint": "Mayu Kuroe"
+    },
+    {
+      "id": "Sapphire_Kawashima",
+      "description": "川島緑輝",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Sapphire_Kawashima_250905.png",
+      "imageHint": "Sapphire Kawashima"
+    },
+    {
+      "id": "Hazuki_Katou",
+      "description": "加藤葉月",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Hazuki_Katou_250905.png",
+      "imageHint": "Hazuki Katou"
+    },
+    {
+      "id": "Asuka_Tanaka",
+      "description": "田中あすか",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Asuka_Tanaka_250905.png",
+      "imageHint": "Asuka Tanaka"
+    },
+    {
+      "id": "Hazuki_Sapphire",
+      "description": "葉月 & 緑輝",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Hazuki_&_Sapphire_250905.png",
+      "imageHint": "Hazuki Sapphire"
+    },
+    {
+      "id": "Reina_Kumiko",
+      "description": "麗奈 & 久美子",
+      "imageUrl": "/AR_photo_frame_1080x1920px_Reina_&_Kumiko_250905.png",
+      "imageHint": "Reina Kumiko"
+    },
+    {
+      "id": "complete",
+      "description": "全員集合",
+      "imageUrl": "/AR_photo_frame_1080x1920px__complete.png",
+      "imageHint": "All members"
+    },
+    {
+      "id": "Hazuki_SD",
+      "description": "葉月 SD",
+      "imageUrl": "/AR_photo_frame_Hazuki_SD_1080x1920px_250918.png",
+      "imageHint": "Hazuki SD"
+    },
+    {
+      "id": "Kumiko_SD",
+      "description": "久美子 SD",
+      "imageUrl": "/AR_photo_frame_Kumiko_SD_1080x1920px_250918.png",
+      "imageHint": "Kumiko SD"
+    },
+    {
+      "id": "Reina_SD",
+      "description": "麗奈 SD",
+      "imageUrl": "/AR_photo_frame_Reina_SD_1080x1920px_250918.png",
+      "imageHint": "Reina SD"
+    },
+    {
+      "id": "Mayu_SD",
+      "description": "真由 SD",
+      "imageUrl": "/AR_photo_frame_Mayu_SD_1080x1920px_250918.png",
+      "imageHint": "Mayu SD"
+    },
+    {
+      "id": "Sapphire_SD",
+      "description": "緑輝 SD",
+      "imageUrl": "/AR_photo_frame_Sapphire_SD_1080x1920px_250918.png",
+      "imageHint": "Sapphire SD"
     }
   ]
 }

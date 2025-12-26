@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useRef } from 'react';
@@ -35,16 +36,6 @@ export function AssetSelector({ assets, selectedAsset, onSelectAsset, onUploadAs
     <div className="relative">
         <ScrollArea className="w-full whitespace-nowrap rounded-md">
             <div className="flex w-max space-x-4 p-4">
-                <Button 
-                    variant="outline"
-                    className={cn(
-                        'h-24 w-16 flex-col gap-2 shrink-0',
-                        !selectedAsset && 'ring-2 ring-primary'
-                    )}
-                    onClick={() => onSelectAsset(null)}
-                >
-                    None
-                </Button>
                 {assets.map((asset) => (
                     <button
                         key={asset.id}

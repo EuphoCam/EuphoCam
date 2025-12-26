@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'CandidCam',
-  description: 'An immersive camera overlay web app.',
+  title: 'EuphoCam',
+  description: 'An immersive camera overlay web app for Sound! Euphonium fans.',
 };
 
 export default function RootLayout({

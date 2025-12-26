@@ -1,5 +1,9 @@
+
 export const dictionaries = {
   en: {
+    'app.title': 'EuphoCam',
+    'app.description': 'An immersive camera app for Sound! Euphonium fans. Choose a photo frame of your favorite Eupho character, take a photo or video, and share your candid moments with the world.',
+    'select.overlay.title': 'Select a Photo Frame',
     'photo': 'Photo',
     'video': 'Video',
     'switch.camera': 'Switch Camera',
@@ -8,7 +12,7 @@ export const dictionaries = {
     'stop.recording': 'Stop Recording',
     'settings': 'Settings',
     'zoom': 'Zoom',
-    'overlays': 'Overlays',
+    'overlays': 'Photo Frames',
     'language': 'Language',
     'upload.overlay': 'Upload',
     'error.title': 'Error',
@@ -18,8 +22,13 @@ export const dictionaries = {
     'error.zoom.unsupported': 'Zoom is not supported on this device.',
     'photo.saved': 'Photo saved!',
     'video.saved': 'Video saved!',
+    'close': 'Close',
+    'error.select.frame': 'Please select a photo frame first.',
   },
   zh: {
+    'app.title': 'EuphoCam',
+    'app.description': '为吹吹人打造的沉浸式相机应用。选择您最喜欢的京吹角色相框，拍摄照片或视频，与世界分享您的精彩瞬间。',
+    'select.overlay.title': '选择一个相框',
     'photo': '照片',
     'video': '视频',
     'switch.camera': '切换摄像头',
@@ -28,7 +37,7 @@ export const dictionaries = {
     'stop.recording': '停止录制',
     'settings': '设置',
     'zoom': '变焦',
-    'overlays': '叠加层',
+    'overlays': '相框',
     'language': '语言',
     'upload.overlay': '上传',
     'error.title': '错误',
@@ -38,8 +47,13 @@ export const dictionaries = {
     'error.zoom.unsupported': '此设备不支持变焦。',
     'photo.saved': '照片已保存！',
     'video.saved': '视频已保存！',
+    'close': '关闭',
+    'error.select.frame': '请先选择一个相框。',
   },
   ja: {
+    'app.title': 'EuphoCam',
+    'app.description': '「響け！ユーフォニアム」ファンのための没入型カメラアプリ。お気に入りのユーフォキャラクターのフォトフレームを選び、写真やビデオを撮影し、あなたの素敵な瞬間を世界と共有しましょう。',
+    'select.overlay.title': 'フォトフレームを選択',
     'photo': '写真',
     'video': 'ビデオ',
     'switch.camera': 'カメラを切り替え',
@@ -48,7 +62,7 @@ export const dictionaries = {
     'stop.recording': '録画を停止',
     'settings': '設定',
     'zoom': 'ズーム',
-    'overlays': 'オーバーレイ',
+    'overlays': 'フォトフレーム',
     'language': '言語',
     'upload.overlay': 'アップロード',
     'error.title': 'エラー',
@@ -58,6 +72,8 @@ export const dictionaries = {
     'error.zoom.unsupported': 'このデバイスはズームをサポートしていません。',
     'photo.saved': '写真が保存されました！',
     'video.saved': 'ビデオが保存されました！',
+    'close': '閉じる',
+    'error.select.frame': 'まずフォトフレームを選択してください。',
   },
 };
 

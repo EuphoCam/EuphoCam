@@ -4,8 +4,13 @@ import { useI18n } from '@/hooks/use-i18n';
 import type { Locale } from '@/lib/dictionaries';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Languages } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-export function LanguageSwitcher() {
+interface LanguageSwitcherProps {
+  className?: string;
+}
+
+export function LanguageSwitcher({ className }: LanguageSwitcherProps) {
   const { locale, setLocale } = useI18n();
 
   const languageMap: Record<Locale, string> = {
@@ -16,7 +21,7 @@ export function LanguageSwitcher() {
 
   return (
     <Select value={locale} onValueChange={(value: Locale) => setLocale(value)}>
-      <SelectTrigger className="w-auto gap-2 bg-black/30 hover:bg-black/50 text-primary-foreground border-0 hover:text-white focus:ring-0 focus:ring-offset-0">
+      <SelectTrigger className={cn("w-auto gap-2 bg-transparent border-0 focus:ring-0 focus:ring-offset-0", className)}>
         <Languages className="h-5 w-5" />
         <SelectValue placeholder="Language" />
       </SelectTrigger>
