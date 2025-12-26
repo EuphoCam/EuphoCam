@@ -50,6 +50,17 @@ export function CameraUI() {
 
   useEffect(() => {
     setMounted(true);
+
+    const preventDefault = (e: Event) => e.preventDefault();
+    document.addEventListener('gesturestart', preventDefault);
+    document.addEventListener('gesturechange', preventDefault);
+    document.addEventListener('gestureend', preventDefault);
+
+    return () => {
+      document.removeEventListener('gesturestart', preventDefault);
+      document.removeEventListener('gesturechange', preventDefault);
+      document.removeEventListener('gestureend', preventDefault);
+    };
   }, []);
 
   useEffect(() => {
@@ -185,6 +196,10 @@ export function CameraUI() {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+
     if (e.touches.length === 2 && zoomStartDistRef.current) {
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
@@ -371,18 +386,17 @@ export function CameraUI() {
       <div
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
-        className={`relative overflow-hidden flex items-center justify-center ${selectedAsset && overlayAspectRatio ? 'max-h-full max-w-full' : 'h-full w-full'
+        className={`relative overflow-hidden flex items-center justify-center touch-none ${selectedAsset && overlayAspectRatio ? 'max-h-full max-w-full' : 'h-full w-full'
           }`}
         style={{ aspectRatio: selectedAsset && overlayAspectRatio ? overlayAspectRatio : 'auto' }}
       >
         <video
           ref={videoRef}
-          style={{ 
-             transform: `${facingMode === 'user' ? 'scaleX(-1)' : ''} scale(${digitalZoom})` 
+          style={{
+            transform: `${facingMode === 'user' ? 'scaleX(-1)' : ''} scale(${digitalZoom})`
           }}
-          className={`h-full w-full ${
-            selectedAsset && overlayAspectRatio ? 'object-cover' : 'object-contain'
-          } ${hasCameraPermission ? '' : 'hidden'}`} // 移除了 className 里的 scale-x-[-1]
+          className={`h-full w-full ${selectedAsset && overlayAspectRatio ? 'object-cover' : 'object-contain'
+            } ${hasCameraPermission ? '' : 'hidden'}`} // 移除了 className 里的 scale-x-[-1]
           onLoadedData={handleVideoLoaded}
         ></video>
 
