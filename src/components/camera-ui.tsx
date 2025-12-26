@@ -33,6 +33,7 @@ export function CameraUI() {
   const zoomStartDistRef = useRef<number | null>(null);
   const zoomStartScaleRef = useRef<number>(1);
   const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastZoomTimeRef = useRef<number>(0);
 
   const [mounted, setMounted] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -170,6 +171,8 @@ export function CameraUI() {
     }
 
     if (e.touches.length === 2 && zoomStartDistRef.current) {
+      lastZoomTimeRef.current = Date.now();
+
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
@@ -195,33 +198,37 @@ export function CameraUI() {
     const x = clientX - container.left;
     const y = clientY - container.top;
 
-    if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
-    setFocusPoint({ x, y, visible: true });
+    if (Date.now() - lastZoomTimeRef.current < 300) return;
 
+    setFocusPoint({ x, y, visible: true });
+    if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
     focusTimeoutRef.current = setTimeout(() => {
       setFocusPoint(prev => prev ? { ...prev, visible: false } : null);
-    }, 500);
+    }, 800);
 
     if (!currentStreamRef.current) return;
     const track = currentStreamRef.current.getVideoTracks()[0];
     const capabilities = track.getCapabilities() as any;
 
-    if (!capabilities.focusMode && !capabilities.pointsOfInterest) return;
+    if (!capabilities.focusMode) return;
 
     try {
+      await track.applyConstraints({
+        advanced: [{ focusMode: 'manual' }]
+      } as any);
+
       const normalizedX = x / container.width;
       const normalizedY = y / container.height;
 
-      const constraints = {
+      await track.applyConstraints({
         advanced: [{
-          pointsOfInterest: { x: normalizedX, y: normalizedY },
-          focusMode: 'continuous'
+          focusMode: 'continuous',
+          pointsOfInterest: [{ x: normalizedX, y: normalizedY }]
         }]
-      } as any;
+      } as any);
 
-      await track.applyConstraints(constraints);
     } catch (err) {
-      console.debug("Focus constraint not supported", err);
+      console.debug("Hardware focus failed, relying on default autofocus", err);
     }
   };
 

@@ -101,14 +101,14 @@ function AssetGrid() {
       </div>
       <footer className="mt-12 text-center text-xs text-muted-foreground">
         <div className="space-y-1">
-            <p>©武田綾乃・宝島社／『響け！』製作委員会2024</p>
-            <p>画像は「京阪電車×響け！ユーフォニアム2025」コラボレーション企画より引用しています。</p>
+            <p className="text-balance">©武田綾乃・宝島社／『響け！』製作委員会2024</p>
+            <p className="text-balance">画像は「京阪電車×響け！ユーフォニアム2025」コラボレーション企画より引用しています。</p>
         </div>
         <div className="mt-6 space-y-1">
-            <p>{t('footer.disclaimer.line1')}</p>
-            <p>{t('footer.disclaimer.line2')}</p>
-            <p>{t('footer.disclaimer.line3')}</p>
-            <p>{t('footer.disclaimer.line4')}</p>
+            <p className="text-balance">{t('footer.disclaimer.line1')}</p>
+            <p className="text-balance">{t('footer.disclaimer.line2')}</p>
+            <p className="text-balance">{t('footer.disclaimer.line3')}</p>
+            <p className="text-balance">{t('footer.disclaimer.line4')}</p>
         </div>
       </footer>
     </div>
