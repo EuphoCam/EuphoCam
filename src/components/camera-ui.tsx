@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -28,15 +29,19 @@ export function CameraUI() {
   const overlayRef = useRef<HTMLImageElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
-  const animationFrameId = useRef<number>();
+  const animationFrameId = useRef<number>(0);
+  const recordingTrackRef = useRef<any>(null);
+  const lastRecordFrameTimeRef = useRef<number>(0);
   const currentStreamRef = useRef<MediaStream | null>(null);
   const zoomStartDistRef = useRef<number | null>(null);
   const zoomStartScaleRef = useRef<number>(1);
   const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastZoomTimeRef = useRef<number>(0);
+  const zoomIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [mounted, setMounted] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [mode, setMode] = useState<Mode>('photo');
   const [facingMode, setFacingMode] = useState<FacingMode>('environment');
@@ -46,6 +51,7 @@ export function CameraUI() {
   const [overlayAspectRatio, setOverlayAspectRatio] = useState<number | null>(null);
   const [digitalZoom, setDigitalZoom] = useState(1);
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number; visible: boolean } | null>(null);
+  const [showZoomIndicator, setShowZoomIndicator] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -59,6 +65,8 @@ export function CameraUI() {
       document.removeEventListener('gesturestart', preventDefault);
       document.removeEventListener('gesturechange', preventDefault);
       document.removeEventListener('gestureend', preventDefault);
+      if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
+      if (zoomIndicatorTimeoutRef.current) clearTimeout(zoomIndicatorTimeoutRef.current);
     };
   }, []);
 
@@ -95,6 +103,7 @@ export function CameraUI() {
     const startStream = async () => {
       setIsLoading(true);
       setHasCameraPermission(null);
+      setIsVideoReady(false);
 
       if (currentStreamRef.current) {
         currentStreamRef.current.getTracks().forEach(track => track.stop());
@@ -140,12 +149,15 @@ export function CameraUI() {
       if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
+      setIsVideoReady(false);
     };
   }, [facingMode, mounted, t, toast]);
 
   const handleVideoLoaded = () => {
     if (videoRef.current) {
-      videoRef.current.play().catch(e => {
+      videoRef.current.play().then(() => {
+        setIsVideoReady(true);
+      }).catch(e => {
         if (e.name !== 'AbortError') {
           console.error("Error playing video:", e)
         }
@@ -180,6 +192,23 @@ export function CameraUI() {
       const scaleFactor = dist / zoomStartDistRef.current;
       const newZoom = Math.min(Math.max(zoomStartScaleRef.current * scaleFactor, 1), 5);
       setDigitalZoom(newZoom);
+      setShowZoomIndicator(true);
+
+      if (zoomIndicatorTimeoutRef.current) {
+        clearTimeout(zoomIndicatorTimeoutRef.current);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    zoomStartDistRef.current = null;
+    if (showZoomIndicator) {
+      if (zoomIndicatorTimeoutRef.current) {
+        clearTimeout(zoomIndicatorTimeoutRef.current);
+      }
+      zoomIndicatorTimeoutRef.current = setTimeout(() => {
+        setShowZoomIndicator(false);
+      }, 500);
     }
   };
 
@@ -217,8 +246,12 @@ export function CameraUI() {
         advanced: [{ focusMode: 'manual' }]
       } as any);
 
-      const normalizedX = x / container.width;
+      let normalizedX = x / container.width;
       const normalizedY = y / container.height;
+
+      if (facingMode === 'user') {
+        normalizedX = 1 - normalizedX;
+      }
 
       await track.applyConstraints({
         advanced: [{
@@ -269,9 +302,10 @@ export function CameraUI() {
     }
 
     context.drawImage(video, zoomedSx, zoomedSy, zoomedSw, zoomedSh, 0, 0, canvas.width, canvas.height);
+    context.drawImage(overlay, 0, 0, canvas.width, canvas.height);
+
     context.restore();
 
-    context.drawImage(overlay, 0, 0, canvas.width, canvas.height);
   }, [facingMode, digitalZoom]);
 
   const handleCapturePhoto = useCallback(() => {
@@ -285,9 +319,6 @@ export function CameraUI() {
     const overlay = overlayRef.current;
     if (!overlay) return;
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
     drawFrame(context, video);
 
     const link = document.createElement('a');
@@ -297,35 +328,57 @@ export function CameraUI() {
     toast({ title: t('photo.saved') });
   }, [drawFrame, t, toast, selectedAsset]);
 
-  const recordLoop = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
-    const currentIsRecording = mediaRecorderRef.current?.state === 'recording';
-    if (!currentIsRecording) return;
+  const recordLoop = useCallback((timestamp: number) => {
+    if (!videoRef.current || !canvasRef.current || !isRecording) return;
 
-    const context = canvasRef.current.getContext('2d');
-    if (context) {
-      drawFrame(context, videoRef.current);
+    if (timestamp - lastRecordFrameTimeRef.current >= 32) {
+      const context = canvasRef.current.getContext('2d');
+      if (context) {
+        drawFrame(context, videoRef.current);
+
+        if (recordingTrackRef.current && recordingTrackRef.current.requestFrame) {
+          recordingTrackRef.current.requestFrame();
+        }
+      }
+      lastRecordFrameTimeRef.current = timestamp;
     }
+
     animationFrameId.current = requestAnimationFrame(recordLoop);
-  }, [drawFrame]);
+  }, [drawFrame, isRecording]);
 
   const handleStartRecording = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || isRecording || !selectedAsset) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    lastRecordFrameTimeRef.current = performance.now();
 
     setIsRecording(true);
     recordedChunksRef.current = [];
-    const canvasStream = canvas.captureStream(30);
+
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    drawFrame(context, video);
+
+    setIsRecording(true);
+    recordedChunksRef.current = [];
+
+    const canvasStream = canvas.captureStream(0);
+    recordingTrackRef.current = canvasStream.getVideoTracks()[0];
 
     if (currentStreamRef.current && currentStreamRef.current.getAudioTracks().length > 0) {
       currentStreamRef.current.getAudioTracks().forEach(audioTrack => canvasStream.addTrack(audioTrack.clone()));
     }
 
-    mediaRecorderRef.current = new MediaRecorder(canvasStream, { mimeType: 'video/webm' });
+    const options: MediaRecorderOptions = {
+      mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+        ? 'video/webm;codecs=vp9'
+        : 'video/webm;codecs=vp8',
+      videoBitsPerSecond: 10000000
+    };
+
+    mediaRecorderRef.current = new MediaRecorder(canvasStream, options);
 
     mediaRecorderRef.current.ondataavailable = (event) => {
       if (event.data.size > 0) {
@@ -346,8 +399,9 @@ export function CameraUI() {
     };
 
     mediaRecorderRef.current.start();
+    lastRecordFrameTimeRef.current = performance.now();
     animationFrameId.current = requestAnimationFrame(recordLoop);
-  }, [isRecording, recordLoop, t, toast, selectedAsset]);
+  }, [isRecording, recordLoop, t, toast, selectedAsset, drawFrame]);
 
   const handleStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -387,6 +441,8 @@ export function CameraUI() {
   };
 
   const handleGoHome = () => {
+    if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
+    if (zoomIndicatorTimeoutRef.current) clearTimeout(zoomIndicatorTimeoutRef.current);
     router.push('/');
   };
 
@@ -396,7 +452,7 @@ export function CameraUI() {
 
   return (
     <div className="relative flex h-full w-full items-center justify-center">
-      {(isLoading || hasCameraPermission === null) && <Loader className="absolute z-20 h-12 w-12 animate-spin text-primary-foreground" />}
+      {(isLoading || hasCameraPermission === null || !isVideoReady) && <Loader className="absolute z-20 h-12 w-12 animate-spin text-primary-foreground" />}
       {hasCameraPermission === false && (
         <div className="absolute z-20 flex flex-col items-center gap-4 text-center text-primary-foreground p-4">
           <AlertTriangle className="h-12 w-12 text-destructive" />
@@ -407,22 +463,24 @@ export function CameraUI() {
       <div
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onClick={handleTapToFocus}
-        className={`relative overflow-hidden flex items-center justify-center touch-none ${selectedAsset && overlayAspectRatio ? 'max-h-full max-w-full' : 'h-full w-full'
+        className={`relative overflow-hidden flex items-center justify-center touch-none ${selectedAsset && overlayAspectRatio && isVideoReady ? 'max-h-full max-w-full' : 'h-full w-full'
           }`}
-        style={{ aspectRatio: selectedAsset && overlayAspectRatio ? overlayAspectRatio : 'auto' }}
+        style={{ aspectRatio: selectedAsset && overlayAspectRatio && isVideoReady ? overlayAspectRatio : 'auto' }}
       >
         <video
           ref={videoRef}
           style={{
             transform: `${facingMode === 'user' ? 'scaleX(-1)' : ''} scale(${digitalZoom})`
           }}
-          className={`h-full w-full ${selectedAsset && overlayAspectRatio ? 'object-cover' : 'object-contain'
-            } ${hasCameraPermission ? '' : 'hidden'}`} // 移除了 className 里的 scale-x-[-1]
+          className={`h-full w-full ${selectedAsset && overlayAspectRatio && isVideoReady ? 'object-cover' : 'object-contain'
+            } ${(hasCameraPermission && !isLoading) ? '' : 'hidden'}`}
           onLoadedData={handleVideoLoaded}
+          playsInline
         ></video>
 
-        {selectedAsset && (
+        {selectedAsset && isVideoReady && (
           <Image
             ref={overlayRef}
             crossOrigin="anonymous"
@@ -432,9 +490,16 @@ export function CameraUI() {
             onLoadingComplete={({ naturalWidth, naturalHeight }) => setOverlayAspectRatio(naturalWidth / naturalHeight)}
             className="pointer-events-none object-fill"
             data-ai-hint={selectedAsset.imageHint}
+            priority
           />
         )}
       </div>
+
+      {showZoomIndicator && (
+        <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/50 px-4 py-2 text-white transition-opacity duration-300">
+          <p className="text-lg font-bold">{digitalZoom.toFixed(1)}x</p>
+        </div>
+      )}
 
       {focusPoint && (
         <div
@@ -467,7 +532,7 @@ export function CameraUI() {
               <Settings />
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="px-0 pb-10"> {/* 移除左右内边距，让滚动条可以通铺 */}
+          <SheetContent side="bottom" className="px-0 pb-10">
             <SheetHeader className="px-4">
               <SheetTitle>{t('settings')}</SheetTitle>
             </SheetHeader>
@@ -507,7 +572,7 @@ export function CameraUI() {
             aria-label={mode === 'photo' ? t('capture.photo') : (isRecording ? t('stop.recording') : t('start.recording'))}
             onClick={handleShutterClick}
             className="h-20 w-20 rounded-full border-4 border-white bg-transparent hover:bg-white/20 transition-all duration-200 flex items-center justify-center group"
-            disabled={isLoading || !hasCameraPermission}
+            disabled={!isVideoReady || !hasCameraPermission}
           >
             {isRecording ? (
               <div className="h-8 w-8 rounded-md bg-destructive animate-pulse"></div>
