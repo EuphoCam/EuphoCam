@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -8,7 +7,6 @@ import { useI18n } from '@/hooks/use-i18n';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
@@ -42,8 +40,6 @@ export function CameraUI() {
   const [facingMode, setFacingMode] = useState<FacingMode>('environment');
   const [assets, setAssets] = useState<ImagePlaceholder[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<ImagePlaceholder | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [zoomCapabilities, setZoomCapabilities] = useState<{ min: number; max: number; step: number } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [overlayAspectRatio, setOverlayAspectRatio] = useState<number | null>(null);
   const [digitalZoom, setDigitalZoom] = useState(1);
@@ -118,24 +114,6 @@ export function CameraUI() {
         }
         setHasCameraPermission(true);
 
-        const videoTrack = mediaStream.getVideoTracks()[0];
-        if (videoTrack && 'zoom' in videoTrack.getSettings()) {
-          try {
-            const caps = videoTrack.getCapabilities();
-            if (caps.zoom) {
-              setZoomCapabilities({ min: caps.zoom.min, max: caps.zoom.max, step: caps.zoom.step });
-              const currentZoom = videoTrack.getSettings().zoom || caps.zoom.min;
-              setZoom(currentZoom);
-            } else {
-              setZoomCapabilities(null);
-            }
-          } catch (e) {
-            console.warn("Could not get zoom capabilities:", e);
-            setZoomCapabilities(null);
-          }
-        } else {
-          setZoomCapabilities(null);
-        }
       } catch (err) {
         setHasCameraPermission(false);
         let messageKey: any = 'error.camera.generic';
@@ -173,16 +151,6 @@ export function CameraUI() {
     setIsLoading(false);
   }
 
-
-  const handleZoomChange = (value: number[]) => {
-    if (!currentStreamRef.current || !zoomCapabilities) return;
-    const videoTrack = currentStreamRef.current.getVideoTracks()[0];
-    if (!videoTrack) return;
-    setZoom(value[0]);
-    videoTrack.applyConstraints({ advanced: [{ zoom: value[0] }] }).catch(() => {
-      toast({ variant: 'destructive', title: t('error.title'), description: t('error.zoom.unsupported') });
-    });
-  };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
@@ -430,31 +398,25 @@ export function CameraUI() {
               <Settings />
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom">
-            <SheetHeader>
+          <SheetContent side="bottom" className="px-0 pb-10"> {/* 移除左右内边距，让滚动条可以通铺 */}
+            <SheetHeader className="px-4">
               <SheetTitle>{t('settings')}</SheetTitle>
             </SheetHeader>
-            <div className="grid gap-6 py-4">
-              {zoomCapabilities && (
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">{t('zoom')}</label>
-                  <Slider
-                    value={[zoom]}
-                    min={zoomCapabilities.min}
-                    max={zoomCapabilities.max}
-                    step={zoomCapabilities.step}
-                    onValueChange={handleZoomChange}
+
+            <div className="mt-6">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium px-4 text-muted-foreground">
+                  {t('overlays')}
+                </label>
+
+                <div className="w-full">
+                  <AssetSelector
+                    assets={assets}
+                    selectedAsset={selectedAsset}
+                    onSelectAsset={setSelectedAsset}
+                    onUploadAsset={handleAssetUpload}
                   />
                 </div>
-              )}
-              <div className="space-y-3">
-                <label className="text-sm font-medium">{t('overlays')}</label>
-                <AssetSelector
-                  assets={assets}
-                  selectedAsset={selectedAsset}
-                  onSelectAsset={setSelectedAsset}
-                  onUploadAsset={handleAssetUpload}
-                />
               </div>
             </div>
           </SheetContent>
