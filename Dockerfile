@@ -23,5 +23,5 @@ COPY Caddyfile /etc/caddy/Caddyfile
 # Copy the static files from the builder stage
 COPY --from=builder /app/out /srv
 
-# Expose port 80 for the Caddy server
-EXPOSE 80
+# Expose port 8080 for the Caddy server
+EXPOSE 8080
