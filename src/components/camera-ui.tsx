@@ -522,8 +522,22 @@ export function CameraUI() {
     setPreviewFileType('');
   };
   
+  const isRestrictedEnv = () => {
+    const ua = navigator.userAgent.toLowerCase();
+    return /micromessenger|qq|weibo/.test(ua);
+  };
+
   const handleSave = () => {
     if (!previewUrl) return;
+
+    if (previewType === 'photo' && isRestrictedEnv()) {
+      toast({
+        title: t('save.alt.title'),
+        description: t('save.alt.description'),
+        duration: 2000,
+      });
+      return;
+    }
   
     const link = document.createElement('a');
     link.href = previewUrl;
@@ -641,12 +655,12 @@ export function CameraUI() {
               )}
             </div>
             <div className="absolute bottom-0 left-0 right-0 z-50 flex justify-center gap-8 p-6 bg-gradient-to-t from-black/70 to-transparent">
-              <Button onClick={handleRetake} variant="ghost" size="lg" className="text-white flex-col h-auto gap-1">
-                <RefreshCw className="h-8 w-8" />
+              <Button onClick={handleRetake} variant="ghost" size="lg" className="text-white flex-col h-auto gap-2">
+                <RefreshCw className="h-10 w-10" />
                 <span>{t('retake')}</span>
               </Button>
-              <Button onClick={handleSave} variant="ghost" size="lg" className="text-white flex-col h-auto gap-1">
-                <Save className="h-8 w-8" />
+              <Button onClick={handleSave} variant="ghost" size="lg" className="text-white flex-col h-auto gap-2">
+                <Save className="h-10 w-10" />
                 <span>{t('save')}</span>
               </Button>
             </div>
