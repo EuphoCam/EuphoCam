@@ -13,6 +13,9 @@ An immersive camera app for Sound! Euphonium fans. Choose a photo frame of your 
 ## Disclaimer
 
 This website is an unofficial "Sound! Euphonium" fan site created and operated by an individual.
+
 It is not affiliated with Takarajimasha, Kyoto Animation, Keihan Group, or any other official parties.
+
 All copyrights and portrait rights of the images used on this site belong to their respective owners.
+
 Upon receiving a legitimate request from a rights holder, we will promptly remove the relevant images or take appropriate action.
