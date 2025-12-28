@@ -332,7 +332,7 @@ export function CameraUI() {
       context.scale(-1, 1);
       context.translate(-canvas.width, 0);
     }
-    
+
     // Fill background for formats that don't support transparency
     if (photoFormat === 'jpeg') {
       context.fillStyle = 'black';
@@ -350,15 +350,27 @@ export function CameraUI() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
+    video.pause();
+
     const context = canvas.getContext('2d', { alpha: photoFormat === 'png' });
     if (!context) return;
 
     drawFrame(context, video);
 
     const mimeType = `image/${photoFormat}`;
-    setPreviewUrl(canvas.toDataURL(mimeType));
-    setPreviewType('photo');
-    setPreviewFileType(photoFormat === 'png' ? 'png' : 'jpg');
+
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        video.play();
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+
+      setPreviewUrl(url);
+      setPreviewType('photo');
+      setPreviewFileType(photoFormat === 'png' ? 'png' : 'jpg');
+    }, mimeType, 0.9);
   }, [drawFrame, selectedAsset, photoFormat]);
 
   const recordLoop = useCallback((timestamp: number) => {
@@ -395,7 +407,7 @@ export function CameraUI() {
     setRecordingTime(0);
     if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     recordingTimerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+      setRecordingTime(prev => prev + 1);
     }, 1000);
 
     recordedChunksRef.current = [];
@@ -469,7 +481,7 @@ export function CameraUI() {
     } else {
       console.warn("Recorder was not ready yet.");
     }
-    
+
     if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     recordingTimerRef.current = null;
     setRecordingTime(0);
@@ -520,8 +532,12 @@ export function CameraUI() {
     setPreviewUrl(null);
     setPreviewType(null);
     setPreviewFileType('');
+
+    if (videoRef.current) {
+      videoRef.current.play().catch(e => console.error("Resume video failed", e));
+    }
   };
-  
+
   const isRestrictedEnv = () => {
     const ua = navigator.userAgent.toLowerCase();
     return /micromessenger|qq|weibo|alipay|line|instagram|tiktok|fbav|fban/.test(ua);
@@ -537,14 +553,14 @@ export function CameraUI() {
       });
       return;
     }
-  
+
     const link = document.createElement('a');
     link.href = previewUrl;
     link.download = `EuphoCam-${Date.now()}.${previewFileType}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  
+
     toast({ title: previewType === 'photo' ? t('photo.saved') : t('video.saved') });
     handleRetake();
   };
@@ -577,7 +593,7 @@ export function CameraUI() {
           onTouchEnd={handleTouchEnd}
           onClick={handleTapToFocus}
           className={`relative overflow-hidden flex items-center justify-center touch-none ${selectedAsset && overlayAspectRatio && isVideoReady ? 'max-h-full max-w-full' : 'h-full w-full'
-          }`}
+            }`}
           style={{ aspectRatio: selectedAsset && overlayAspectRatio && isVideoReady ? overlayAspectRatio : 'auto' }}
         >
           <video
@@ -647,7 +663,10 @@ export function CameraUI() {
               style={{ aspectRatio: selectedAsset && overlayAspectRatio ? overlayAspectRatio : 'auto' }}
             >
               {previewType === 'photo' && (
-                <Image src={previewUrl} alt="Preview" layout="fill" objectFit="contain" />
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="h-full w-full object-contain" />
               )}
               {previewType === 'video' && (
                 <video src={previewUrl} className="w-full h-full" autoPlay controls loop />
@@ -710,13 +729,13 @@ export function CameraUI() {
               </div>
 
               <Separator />
-              
+
               <div className="flex flex-col gap-3 px-4">
                 <label className="text-sm font-medium text-muted-foreground">
                   {t('photo.format')}
                 </label>
-                <RadioGroup 
-                  value={photoFormat} 
+                <RadioGroup
+                  value={photoFormat}
                   onValueChange={(value) => handleSetPhotoFormat(value as PhotoFormat)}
                   className="flex gap-4"
                 >
@@ -777,4 +796,3 @@ export function CameraUI() {
     </div>
   );
 }
-    
