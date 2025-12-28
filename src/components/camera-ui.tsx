@@ -43,6 +43,7 @@ export function CameraUI() {
   const lastZoomTimeRef = useRef<number>(0);
   const zoomIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isRecordingRef = useRef(false);
 
   const [mounted, setMounted] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -374,7 +375,7 @@ export function CameraUI() {
   }, [drawFrame, selectedAsset, photoFormat]);
 
   const recordLoop = useCallback((timestamp: number) => {
-    if (!isRecording) return;
+    if (!isRecordingRef.current) return;
 
     if (timestamp - lastRecordFrameTimeRef.current >= 32) {
       const video = videoRef.current;
@@ -390,7 +391,7 @@ export function CameraUI() {
     }
 
     animationFrameId.current = requestAnimationFrame(recordLoop);
-  }, [drawFrame, isRecording]);
+  }, [drawFrame]);
 
   const handleStartRecording = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || isRecording || !selectedAsset) return;
@@ -398,12 +399,18 @@ export function CameraUI() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
+    if (video.paused) {
+      video.play().catch(console.error);
+    }
+
     const context = canvas.getContext('2d', { alpha: false });
     if (!context) return;
 
     drawFrame(context, video);
 
+    isRecordingRef.current = true;
     setIsRecording(true);
+
     setRecordingTime(0);
     if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     recordingTimerRef.current = setInterval(() => {
@@ -437,6 +444,7 @@ export function CameraUI() {
 
       const mimeType = getSupportedMimeType();
       if (!mimeType) {
+        isRecordingRef.current = false;
         setIsRecording(false);
         toast({ variant: 'destructive', title: t('error.title'), description: "Device doesn't support video recording." });
         return;
@@ -457,6 +465,9 @@ export function CameraUI() {
       };
 
       recorder.onstop = () => {
+        isRecordingRef.current = false;
+        setIsRecording(false);
+
         if (recordedChunksRef.current.length === 0) {
           toast({ variant: 'destructive', title: t('error.title'), description: "Recording failed: No data." });
         } else {
@@ -467,18 +478,20 @@ export function CameraUI() {
           setPreviewType('video');
           setPreviewFileType(extension);
         }
-        setIsRecording(false);
       };
 
       recorder.start(1000);
     } catch (err) {
       console.error("Recording error:", err);
+      isRecordingRef.current = false;
       setIsRecording(false);
       toast({ variant: 'destructive', title: t('error.title'), description: "Failed to start recorder." });
     }
-  }, [isRecording, recordLoop, drawFrame, selectedAsset, toast, t]);
+  }, [recordLoop, drawFrame, selectedAsset, toast, t]);
 
   const handleStopRecording = useCallback(() => {
+    isRecordingRef.current = false;
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
@@ -492,7 +505,7 @@ export function CameraUI() {
       cancelAnimationFrame(animationFrameId.current);
     }
 
-    setIsRecording(false); 
+    setIsRecording(false);
     setRecordingTime(0);
   }, []);
 
