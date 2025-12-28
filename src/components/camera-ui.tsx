@@ -524,7 +524,7 @@ export function CameraUI() {
   
   const isRestrictedEnv = () => {
     const ua = navigator.userAgent.toLowerCase();
-    return /micromessenger|qq|weibo/.test(ua);
+    return /micromessenger|qq|weibo|alipay|line|instagram|tiktok|fbav|fban/.test(ua);
   };
 
   const handleSave = () => {
