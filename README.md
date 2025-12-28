@@ -1,5 +1,3 @@
-# Firebase Studio
+# EuphoCam
 
-This is a NextJS starter in Firebase Studio.
-
-To get started, take a look at src/app/page.tsx.
+[English](./README.en.md) | [中文](./README.zh.md) | [日本語](./README.ja.md)
