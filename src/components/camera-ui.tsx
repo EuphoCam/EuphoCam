@@ -414,81 +414,86 @@ export function CameraUI() {
     lastRecordFrameTimeRef.current = performance.now();
     animationFrameId.current = requestAnimationFrame(recordLoop);
 
-    setTimeout(() => {
-      try {
-        const canvasStream = canvas.captureStream(30);
 
-        if (currentStreamRef.current) {
-          currentStreamRef.current.getAudioTracks().forEach(track => {
-            canvasStream.addTrack(track.clone());
-          });
-        }
+    try {
+      const canvasStream = canvas.captureStream(30);
 
-        const getSupportedMimeType = () => {
-          const types = [
-            'video/mp4;codecs=avc1',
-            'video/webm;codecs=vp8',
-            'video/webm',
-            'video/mp4'
-          ];
-          return types.find(type => MediaRecorder.isTypeSupported(type)) || '';
-        };
-
-        const mimeType = getSupportedMimeType();
-        if (!mimeType) {
-          toast({ variant: 'destructive', title: t('error.title'), description: "Device not supported." });
-          return;
-        }
-
-        const options = {
-          mimeType: 'video/webm;codecs=vp8',
-          videoBitsPerSecond: 4000000
-        };
-
-        const recorder = new MediaRecorder(canvasStream, options);
-        mediaRecorderRef.current = recorder;
-
-        recorder.ondataavailable = (e) => {
-          if (e.data.size > 0) recordedChunksRef.current.push(e.data);
-        };
-
-        recorder.onstop = () => {
-          if (recordedChunksRef.current.length === 0) {
-            toast({ variant: 'destructive', title: t('error.title'), description: "Recording failed: No data." });
-          } else {
-            const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
-            const blob = new Blob(recordedChunksRef.current, { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            setPreviewUrl(url);
-            setPreviewType('video');
-            setPreviewFileType(extension);
-          }
-        };
-
-        recorder.start(500);
-
-      } catch (err) {
-        console.error("Recording error:", err);
-        setIsRecording(false);
+      if (currentStreamRef.current) {
+        currentStreamRef.current.getAudioTracks().forEach(track => {
+          canvasStream.addTrack(track.clone());
+        });
       }
-    }, 250);
 
+      const getSupportedMimeType = () => {
+        const types = [
+          'video/mp4',
+          'video/mp4;codecs=avc1',
+          'video/webm;codecs=vp9',
+          'video/webm;codecs=vp8',
+          'video/webm'
+        ];
+        return types.find(type => MediaRecorder.isTypeSupported(type)) || '';
+      };
+
+      const mimeType = getSupportedMimeType();
+      if (!mimeType) {
+        setIsRecording(false);
+        toast({ variant: 'destructive', title: t('error.title'), description: "Device doesn't support video recording." });
+        return;
+      }
+
+      const options = {
+        mimeType: mimeType,
+        videoBitsPerSecond: 4000000
+      };
+
+      const recorder = new MediaRecorder(canvasStream, options);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          recordedChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        if (recordedChunksRef.current.length === 0) {
+          toast({ variant: 'destructive', title: t('error.title'), description: "Recording failed: No data." });
+        } else {
+          const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+          const blob = new Blob(recordedChunksRef.current, { type: mimeType });
+          const url = URL.createObjectURL(blob);
+          setPreviewUrl(url);
+          setPreviewType('video');
+          setPreviewFileType(extension);
+        }
+        setIsRecording(false);
+      };
+
+      recorder.start(1000);
+    } catch (err) {
+      console.error("Recording error:", err);
+      setIsRecording(false);
+      toast({ variant: 'destructive', title: t('error.title'), description: "Failed to start recorder." });
+    }
   }, [isRecording, recordLoop, drawFrame, selectedAsset, toast, t]);
 
   const handleStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
-    } else {
-      console.warn("Recorder was not ready yet.");
     }
 
-    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-    recordingTimerRef.current = null;
-    setRecordingTime(0);
-    setIsRecording(false);
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
     if (animationFrameId.current) {
       cancelAnimationFrame(animationFrameId.current);
     }
+
+    setIsRecording(false); 
+    setRecordingTime(0);
   }, []);
 
   const handleShutterClick = () => {
@@ -644,7 +649,6 @@ export function CameraUI() {
           </div>
         )}
       </div>
-
 
       <canvas ref={canvasRef}
         className="pointer-events-none absolute opacity-0"
