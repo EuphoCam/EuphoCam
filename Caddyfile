@@ -1,6 +1,9 @@
-:80 {
-	root * /srv
-	encode gzip
-	try_files {path} /index.html
-	file_server
+{
+  http_port 8080
+}
+
+:8080 {
+  root * /app/out
+  file_server
+  try_files {path} {path}/index.html /index.html
 }
