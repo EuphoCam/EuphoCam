@@ -33,7 +33,6 @@ export const dictionaries = {
     'photo.format': 'Photo Format',
     'photo.format.png': 'PNG (high quality)',
     'photo.format.jpg': 'JPG (smaller file size)',
-    'save.alt.title': 'Long-press to save',
     'save.alt.description': 'Your browser does not support direct downloads. Please long-press the image to save it.',
   },
   'zh-CN': {
@@ -69,7 +68,6 @@ export const dictionaries = {
     'photo.format': '照片格式',
     'photo.format.png': 'PNG（高质量）',
     'photo.format.jpg': 'JPG（文件更小）',
-    'save.alt.title': '请长按图片保存',
     'save.alt.description': '您的浏览器不支持直接下载，请长按图片手动保存。',
   },
   'zh-TW': {
@@ -105,7 +103,6 @@ export const dictionaries = {
     'photo.format': '照片格式',
     'photo.format.png': 'PNG（高品質）',
     'photo.format.jpg': 'JPG（檔案更小）',
-    'save.alt.title': '請長按圖片儲存',
     'save.alt.description': '您的瀏覽器不支援直接下載，請長按圖片手動儲存。',
   },
   ja: {
@@ -141,11 +138,8 @@ export const dictionaries = {
     'photo.format': '写真形式',
     'photo.format.png': 'PNG (高画質)',
     'photo.format.jpg': 'JPG (ファイルサイズ小)',
-    'save.alt.title': '長押しして保存',
     'save.alt.description': 'お使いのブラウザは直接ダウンロードに対応していません。画像を長押しして保存してください。',
   },
 };
 
 export type Locale = keyof typeof dictionaries;
-
-    

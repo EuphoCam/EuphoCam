@@ -532,7 +532,6 @@ export function CameraUI() {
 
     if (previewType === 'photo' && isRestrictedEnv()) {
       toast({
-        title: t('save.alt.title'),
         description: t('save.alt.description'),
         duration: 3000,
       });
@@ -778,3 +777,4 @@ export function CameraUI() {
     </div>
   );
 }
+    

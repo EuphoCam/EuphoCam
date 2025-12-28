@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { I18nProvider } from '@/hooks/use-i18n';
 import { RootLayoutClient } from '@/components/root-layout-client';
+import { I18nProvider } from '@/hooks/use-i18n';
 
 export const metadata: Metadata = {
   title: 'EuphoCam',
