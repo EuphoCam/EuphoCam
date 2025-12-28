@@ -534,7 +534,7 @@ export function CameraUI() {
       toast({
         title: t('save.alt.title'),
         description: t('save.alt.description'),
-        duration: 2000,
+        duration: 3000,
       });
       return;
     }
