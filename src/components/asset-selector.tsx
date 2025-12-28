@@ -52,6 +52,7 @@ export function AssetSelector({ assets, selectedAsset, onSelectAsset, onUploadAs
               fill
               className="object-cover"
               sizes="64px"
+              loading="lazy"
             />
           </button>
         ))}
