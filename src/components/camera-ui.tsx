@@ -63,6 +63,7 @@ export function CameraUI() {
   const [previewType, setPreviewType] = useState<PreviewType | null>(null);
   const [previewFileType, setPreviewFileType] = useState<string>('');
   const [photoFormat, setPhotoFormat] = useState<PhotoFormat>('png');
+  const [isOverlayLoading, setIsOverlayLoading] = useState(false);
 
 
   useEffect(() => {
@@ -118,6 +119,9 @@ export function CameraUI() {
 
   useEffect(() => {
     setOverlayAspectRatio(null);
+    if (selectedAsset) {
+      setIsOverlayLoading(true);
+    }
   }, [selectedAsset]);
 
   useEffect(() => {
@@ -647,7 +651,10 @@ export function CameraUI() {
               src={selectedAsset.imageUrl}
               alt={selectedAsset.description}
               fill
-              onLoadingComplete={({ naturalWidth, naturalHeight }) => setOverlayAspectRatio(naturalWidth / naturalHeight)}
+              onLoadingComplete={({ naturalWidth, naturalHeight }) => {
+                setOverlayAspectRatio(naturalWidth / naturalHeight);
+                setIsOverlayLoading(false);
+              }}
               className={`pointer-events-none object-cover transition-opacity duration-300 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
               data-ai-hint={selectedAsset.imageHint}
               priority
@@ -755,6 +762,7 @@ export function CameraUI() {
                     selectedAsset={selectedAsset}
                     onSelectAsset={setSelectedAsset}
                     onUploadAsset={handleAssetUpload}
+                    isLoading={isOverlayLoading}
                   />
                 </div>
               </div>

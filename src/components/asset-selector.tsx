@@ -4,7 +4,7 @@ import React, { useRef } from 'react';
 import Image from 'next/image';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
-import { Upload } from 'lucide-react';
+import { Upload, Loader } from 'lucide-react';
 import { useI18n } from '@/hooks/use-i18n';
 import { cn } from '@/lib/utils';
 
@@ -13,9 +13,10 @@ interface AssetSelectorProps {
   selectedAsset: ImagePlaceholder | null;
   onSelectAsset: (asset: ImagePlaceholder | null) => void;
   onUploadAsset: (file: File) => void;
+  isLoading?: boolean;
 }
 
-export function AssetSelector({ assets, selectedAsset, onSelectAsset, onUploadAsset }: AssetSelectorProps) {
+export function AssetSelector({ assets, selectedAsset, onSelectAsset, onUploadAsset, isLoading }: AssetSelectorProps) {
   const { t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,6 +55,11 @@ export function AssetSelector({ assets, selectedAsset, onSelectAsset, onUploadAs
               sizes="64px"
               loading="lazy"
             />
+            {isLoading && selectedAsset?.id === asset.id && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                <Loader className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            )}
           </button>
         ))}
 
