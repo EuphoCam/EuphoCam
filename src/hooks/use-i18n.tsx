@@ -15,26 +15,37 @@ type I18nContextType = {
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<Locale>('en');
+  const [locale, setLocaleRaw] = useState<Locale>('en');
+
+  const setLocale = useCallback((newLocale: Locale) => {
+    setLocaleRaw(newLocale);
+    localStorage.setItem('eupho-cam-locale', newLocale);
+  }, []);
 
   useEffect(() => {
+    const storedLocale = localStorage.getItem('eupho-cam-locale') as Locale | null;
+    if (storedLocale && Object.keys(dictionaries).includes(storedLocale)) {
+      setLocaleRaw(storedLocale);
+      return;
+    }
+
     const browserLang = navigator.language.toLowerCase();
     let detectedLocale: Locale = 'en';
 
     if (browserLang.startsWith('zh')) {
-        if (browserLang === 'zh-cn' || browserLang === 'zh-sg') {
-            detectedLocale = 'zh-CN';
-        } else if (browserLang === 'zh-tw' || browserLang === 'zh-hk') {
-            detectedLocale = 'zh-TW';
-        } else {
-            detectedLocale = 'zh-CN';
-        }
+      if (browserLang === 'zh-cn' || browserLang === 'zh-sg') {
+        detectedLocale = 'zh-CN';
+      } else if (browserLang === 'zh-tw' || browserLang === 'zh-hk') {
+        detectedLocale = 'zh-TW';
+      } else {
+        detectedLocale = 'zh-CN';
+      }
     } else if (browserLang.startsWith('ja')) {
-        detectedLocale = 'ja';
+      detectedLocale = 'ja';
     }
 
     if (Object.keys(dictionaries).includes(detectedLocale)) {
-      setLocale(detectedLocale);
+      setLocaleRaw(detectedLocale);
     }
   }, []);
 
