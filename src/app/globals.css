@@ -8,19 +8,22 @@ body {
 
 @layer base {
   :root {
-    --background: 220 8% 97%; /* Lighter soft gray */
+    --background: 220 8% 97%;
+    /* Lighter soft gray */
     --foreground: 206 38% 15%;
     --card: 220 8% 97%;
     --card-foreground: 206 38% 15%;
     --popover: 220 8% 97%;
     --popover-foreground: 206 38% 15%;
-    --primary: 206 38% 29%; /* Deep blue */
+    --primary: 206 38% 29%;
+    /* Deep blue */
     --primary-foreground: 0 0% 98%;
     --secondary: 220 8% 90%;
     --secondary-foreground: 206 38% 20%;
     --muted: 220 8% 85%;
     --muted-foreground: 206 30% 40%;
-    --accent: 323 16% 38%; /* Muted violet */
+    --accent: 323 16% 38%;
+    /* Muted violet */
     --accent-foreground: 0 0% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
@@ -42,6 +45,7 @@ body {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
     --background: 240 6% 10%;
     --foreground: 0 0% 98%;
@@ -49,13 +53,15 @@ body {
     --card-foreground: 0 0% 98%;
     --popover: 240 6% 10%;
     --popover-foreground: 0 0% 98%;
-    --primary: 206 48% 55%; /* Lighter blue for dark mode */
+    --primary: 206 48% 55%;
+    /* Lighter blue for dark mode */
     --primary-foreground: 206 38% 10%;
     --secondary: 240 6% 15%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 6% 20%;
     --muted-foreground: 0 0% 63.9%;
-    --accent: 323 20% 55%; /* Lighter violet for dark mode */
+    --accent: 323 20% 55%;
+    /* Lighter violet for dark mode */
     --accent-foreground: 323 16% 10%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
@@ -82,6 +88,7 @@ body {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }

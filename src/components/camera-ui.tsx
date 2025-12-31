@@ -702,7 +702,7 @@ export function CameraUI() {
                   className="h-full w-full object-contain" />
               )}
               {previewType === 'video' && (
-                <video src={previewUrl} className="w-full h-full" autoPlay controls loop />
+                <video src={previewUrl} className="w-full h-full" autoPlay loop muted playsInline />
               )}
             </div>
             <div className="absolute bottom-0 left-0 right-0 z-50 flex justify-center gap-8 p-6 bg-gradient-to-t from-black/70 to-transparent">
