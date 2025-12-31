@@ -426,7 +426,7 @@ export function CameraUI() {
 
 
     try {
-      const canvasStream = canvas.captureStream();
+      const canvasStream = canvas.captureStream(24);
 
       if (currentStreamRef.current) {
         currentStreamRef.current.getAudioTracks().forEach(track => {
@@ -460,7 +460,7 @@ export function CameraUI() {
 
       const options = {
         mimeType: mimeType,
-        videoBitsPerSecond: 2500000 // Slightly lower bitrate for better mobile performance
+        videoBitsPerSecond: 1500000 // Lower bitrate for smoother encoding on Android
       };
 
       const recorder = new MediaRecorder(canvasStream, options);
@@ -494,7 +494,7 @@ export function CameraUI() {
         }
       };
 
-      recorder.start();
+      recorder.start(1000); // Back to 1s slices for metadata/duration reliability
     } catch (err) {
       console.error("Recording error:", err);
       isRecordingRef.current = false;
