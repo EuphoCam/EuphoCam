@@ -334,7 +334,6 @@ export function CameraUI() {
       context.translate(-canvas.width, 0);
     }
 
-    // Fill background for formats that don't support transparency
     if (photoFormat === 'jpeg') {
       context.fillStyle = 'black';
       context.fillRect(0, 0, canvas.width, canvas.height);
@@ -432,14 +431,31 @@ export function CameraUI() {
       }
 
       const getSupportedMimeType = () => {
-        const types = [
+        const hasAudio = currentStreamRef.current && currentStreamRef.current.getAudioTracks().length > 0;
+
+        const videoTypes = [
+          'video/mp4;codecs="avc1,mp4a.40.2"',
+          'video/mp4;codecs="avc1"',
           'video/mp4',
-          'video/mp4;codecs=avc1',
+          'video/webm;codecs="vp9,opus"',
+          'video/webm;codecs="vp8,opus"',
+          'video/webm;codecs="h264,opus"',
           'video/webm;codecs=vp9',
           'video/webm;codecs=vp8',
           'video/webm'
         ];
-        return types.find(type => MediaRecorder.isTypeSupported(type)) || '';
+
+        const audioOnlyTypes = [
+          'video/webm;codecs=vp9',
+          'video/webm;codecs=vp8',
+          'video/webm',
+          'video/mp4'
+        ];
+
+        const candidateTypes = hasAudio ? videoTypes : audioOnlyTypes;
+
+        return candidateTypes.find(type => MediaRecorder.isTypeSupported(type)) ||
+          videoTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
       };
 
       const mimeType = getSupportedMimeType();
