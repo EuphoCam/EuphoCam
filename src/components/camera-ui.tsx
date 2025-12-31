@@ -398,17 +398,21 @@ export function CameraUI() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
+    isRecordingRef.current = true;
+    setIsRecording(true);
+
     if (video.paused) {
       video.play().catch(console.error);
     }
 
     const context = canvas.getContext('2d', { alpha: false });
-    if (!context) return;
+    if (!context) {
+      isRecordingRef.current = false;
+      setIsRecording(false);
+      return;
+    }
 
     drawFrame(context, video);
-
-    isRecordingRef.current = true;
-    setIsRecording(true);
 
     setRecordingTime(0);
     if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
@@ -422,7 +426,7 @@ export function CameraUI() {
 
 
     try {
-      const canvasStream = canvas.captureStream(30);
+      const canvasStream = canvas.captureStream();
 
       if (currentStreamRef.current) {
         currentStreamRef.current.getAudioTracks().forEach(track => {
@@ -431,31 +435,19 @@ export function CameraUI() {
       }
 
       const getSupportedMimeType = () => {
-        const hasAudio = currentStreamRef.current && currentStreamRef.current.getAudioTracks().length > 0;
-
         const videoTypes = [
-          'video/mp4;codecs="avc1,mp4a.40.2"',
-          'video/mp4;codecs="avc1"',
-          'video/mp4',
           'video/webm;codecs="vp9,opus"',
           'video/webm;codecs="vp8,opus"',
           'video/webm;codecs="h264,opus"',
           'video/webm;codecs=vp9',
           'video/webm;codecs=vp8',
-          'video/webm'
-        ];
-
-        const audioOnlyTypes = [
-          'video/webm;codecs=vp9',
-          'video/webm;codecs=vp8',
           'video/webm',
+          'video/mp4;codecs="avc1,mp4a.40.2"',
+          'video/mp4;codecs="avc1"',
           'video/mp4'
         ];
 
-        const candidateTypes = hasAudio ? videoTypes : audioOnlyTypes;
-
-        return candidateTypes.find(type => MediaRecorder.isTypeSupported(type)) ||
-          videoTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
+        return videoTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
       };
 
       const mimeType = getSupportedMimeType();
@@ -468,7 +460,7 @@ export function CameraUI() {
 
       const options = {
         mimeType: mimeType,
-        videoBitsPerSecond: 4000000
+        videoBitsPerSecond: 2500000 // Slightly lower bitrate for better mobile performance
       };
 
       const recorder = new MediaRecorder(canvasStream, options);
@@ -478,6 +470,12 @@ export function CameraUI() {
         if (e.data && e.data.size > 0) {
           recordedChunksRef.current.push(e.data);
         }
+      };
+
+      recorder.onerror = (e) => {
+        console.error("MediaRecorder error:", e);
+        handleStopRecording();
+        toast({ variant: 'destructive', title: t('error.title'), description: "Recording error occurred." });
       };
 
       recorder.onstop = () => {
@@ -496,7 +494,7 @@ export function CameraUI() {
         }
       };
 
-      recorder.start(1000);
+      recorder.start();
     } catch (err) {
       console.error("Recording error:", err);
       isRecordingRef.current = false;
@@ -537,7 +535,7 @@ export function CameraUI() {
     if (mode === 'photo') {
       handleCapturePhoto();
     } else {
-      isRecording ? handleStopRecording() : handleStartRecording();
+      isRecordingRef.current ? handleStopRecording() : handleStartRecording();
     }
   };
 
