@@ -16,6 +16,7 @@ import { LanguageSwitcher } from './language-switcher';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
+import { processUploadedFrame } from '@/lib/image-utils';
 
 type Mode = 'photo' | 'video';
 type FacingMode = 'user' | 'environment';
@@ -542,15 +543,22 @@ export function CameraUI() {
     }
   };
 
-  const handleAssetUpload = (file: File) => {
-    const newAsset: ImagePlaceholder = {
-      id: `uploaded-${Date.now()}`,
-      imageUrl: URL.createObjectURL(file),
-      description: file.name,
-      imageHint: 'uploaded',
-    };
-    setAssets(prev => [newAsset, ...prev]);
-    setSelectedAsset(newAsset);
+  const handleAssetUpload = async (file: File) => {
+    setIsOverlayLoading(true);
+    try {
+      const processedUrl = await processUploadedFrame(file);
+      const newAsset: ImagePlaceholder = {
+        id: `uploaded-${Date.now()}`,
+        imageUrl: processedUrl,
+        description: file.name,
+        imageHint: 'uploaded',
+      };
+      setAssets(prev => [newAsset, ...prev]);
+      setSelectedAsset(newAsset);
+    } catch (error) {
+      console.error('Failed to process image:', error);
+      setIsOverlayLoading(false);
+    }
   };
 
   const handleGoHome = () => {

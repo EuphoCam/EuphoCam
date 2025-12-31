@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { I18nProvider, useI18n } from '@/hooks/use-i18n';
 import { Upload, Loader } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { processUploadedFrame } from '@/lib/image-utils';
 
 function AssetGrid() {
   const [assets, setAssets] = useState<ImagePlaceholder[]>([]);
@@ -27,16 +28,21 @@ function AssetGrid() {
     router.push(`/camera?assetId=${assetId}`);
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const newAsset: ImagePlaceholder = {
-        id: `uploaded-${Date.now()}`,
-        imageUrl: URL.createObjectURL(file),
-        description: file.name,
-        imageHint: 'uploaded',
-      };
-      router.push(`/camera?uploadedAssetUrl=${encodeURIComponent(newAsset.imageUrl)}&uploadedAssetDescription=${encodeURIComponent(newAsset.description)}`);
+      try {
+        const processedUrl = await processUploadedFrame(file);
+        const newAsset: ImagePlaceholder = {
+          id: `uploaded-${Date.now()}`,
+          imageUrl: processedUrl,
+          description: file.name,
+          imageHint: 'uploaded',
+        };
+        router.push(`/camera?uploadedAssetUrl=${encodeURIComponent(newAsset.imageUrl)}&uploadedAssetDescription=${encodeURIComponent(newAsset.description)}`);
+      } catch (error) {
+        console.error('Failed to process image:', error);
+      }
     }
   };
 
