@@ -1,6 +1,30 @@
 {
   "placeholderImages": [
     {
+      "id": "kumiko2",
+      "description": "久美子",
+      "imageUrl": "/AR_photoframe_kumiko2.webp",
+      "imageHint": "Kumiko"
+    },
+    {
+      "id": "hazuki2",
+      "description": "葉月",
+      "imageUrl": "/AR_photoframe_hazuki2.webp",
+      "imageHint": "Hazuki"
+    },
+    {
+      "id": "sapphire2",
+      "description": "緑輝",
+      "imageUrl": "/AR_photoframe_sapphire2.webp",
+      "imageHint": "Sapphire"
+    },
+    {
+      "id": "reina2",
+      "description": "麗奈",
+      "imageUrl": "/AR_photoframe_reina2.webp",
+      "imageHint": "Reina"
+    },
+    {
       "id": "Kanade_Hisaishi",
       "description": "久石奏",
       "imageUrl": "/AR_photo_frame_1080x1920px_Kanade_Hisaishi_250905.webp",
